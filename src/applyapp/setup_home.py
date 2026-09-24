@@ -9,6 +9,7 @@ from pathlib import Path
 
 from applyapp.config import PROJECT_ROOT, write_private_text
 from applyapp.queue import _create_workbook
+from applyapp.seeds import ROLE_ATS, ROLE_DESIGN, classify
 
 EXAMPLE_SEEDS = Path(__file__).resolve().parent / "examples" / "seeds"
 
@@ -37,6 +38,30 @@ def init_home(home: Path, env_file: Path | None = None) -> list[str]:
         "Then run: python -m applyapp doctor",
         "Then run: python -m applyapp run --limit 1",
     ]
+
+
+def with_bundled_guidance(files: list[dict]) -> list[dict]:
+    """Add the shipped optimization paper and design spec when a seed folder lacks them.
+
+    Those two documents are part of the app, not a person's career. A copy already
+    in the folder, including one the person edited, is left alone.
+    """
+    present = {classify(file["name"], file.get("parents") or []) for file in files}
+    extra: list[dict] = []
+    for path in sorted(EXAMPLE_SEEDS.iterdir()):
+        if not path.is_file() or path.name.startswith("."):
+            continue
+        role = classify(path.name, [])
+        if role not in {ROLE_ATS, ROLE_DESIGN} or role in present:
+            continue
+        extra.append(
+            {
+                "name": path.name,
+                "parents": [],
+                "text": path.read_text(encoding="utf-8"),
+            }
+        )
+    return files + extra
 
 
 def _copy_examples(seed_dir: Path) -> int:
@@ -115,7 +140,11 @@ def _interview_local(env_path: Path, input_func, home: Path) -> list[str]:
     seed_dir = Path(_ask(input_func, f"Seed folder [{home / 'seeds'}]: ", str(home / "seeds"))).expanduser()
     output_dir = Path(_ask(input_func, f"Output folder [{home / 'output'}]: ", str(home / "output"))).expanduser()
     jobs_path = Path(_ask(input_func, f"Job spreadsheet [{home / 'jobs.xlsx'}]: ", str(home / "jobs.xlsx"))).expanduser()
-    copy_examples = _ask_yes(input_func, "Copy the fictional example seeds into that folder? [Y/n]: ", default=True)
+    copy_examples = _ask_yes(
+        input_func,
+        "Copy the starter seeds into that folder? [Y/n]: ",
+        default=True,
+    )
     model, base_url, api_key, critic = _ask_models(input_func)
     seed_dir.mkdir(parents=True, exist_ok=True)
     output_dir.mkdir(parents=True, exist_ok=True)
