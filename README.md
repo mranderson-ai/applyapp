@@ -55,8 +55,8 @@ Files in the seed folder (Drive, or `LOCAL_SEED_DIR`, including subfolders) are 
 | --- | --- |
 | `Human Writings` | Voice and tone for cover letters (emails, outreach, letters). Not a fact source. |
 | A file whose name contains `accomplishment` | Canonical career facts. A spreadsheet tab, or a markdown section, is one role. |
-| `Resume Optimization for HR AI Paper` | Craft rules for ATS-friendly resumes. Follow this; it is not a biography. |
-| `ApplyApp Document Design` | Visual system for resume and cover letter. Applied in a format step before the file is written. Edit this to change look-and-feel. |
+| `Resume & Cover Letter Optimization Paper` | Craft rules for ATS-friendly resumes and cover letters. Follow this; it is not a biography. Shipped in full with the app. |
+| `ApplyApp Document Design` | Visual system for the resume and cover letter. Applied in a format step before the file is written. Shipped in full with the app. |
 | Other resumes (PDF, Word, Google Docs) | Starting points only. Produce a stronger, posting-specific version, do not clone them. |
 | `Work Examples` | Optional proof of how the applicant works. Not a template. |
 
@@ -68,13 +68,13 @@ Google is optional. A local folder, a local spreadsheet, and one model key are e
 
 1. Install this project (`pip install -e ".[dev]"` from a checkout).
 2. Run `python -m applyapp run`. The first time, it asks where seed documents live, where finished files go, where the job spreadsheet is, and which model should write and critique. Press Enter to take the suggested local folders and Claude. `python -m applyapp init` writes those same defaults without asking. An existing `.env` is left alone, including a scheduled 7am run.
-3. Replace the example seeds with your own files. Keep the words `accomplishment`, `human writings`, `optimization paper`, and `document design` in the filenames so each file is classified. Other PDF and Word files are treated as prior resumes and cover letters.
+3. Replace the fictional personal seeds with your own files: the accomplishments workbook, Human Writings, and any prior resumes. Keep `accomplishment` and `human writings` in those filenames so each file is classified. Other PDF and Word files are treated as prior resumes and cover letters. Leave `Resume & Cover Letter Optimization Paper` and `ApplyApp Document Design` in place. Those two are the app's craft and visual specs, not a sample career. If you edit them, keep `optimization paper` and `document design` in the filenames.
 4. Put your model key in `.env`. See Models below. A run makes several calls per job, so check the provider's price first.
 5. Paste one public job URL into column A of `jobs.xlsx` and leave Status blank.
 6. Run `python -m applyapp doctor`, then `python -m applyapp run --limit 1`.
 7. Proofread the Word files in `~/ApplyApp/output` before you submit anything.
 
-The example seeds are a fictional person, Alex Rivera. They are not a real career. `applyapp init` does not copy anyone's private documents into the repo.
+The sample resume, accomplishments, and Human Writings are a fictional person, Alex Rivera. They are not a real career. The optimization paper and the document design spec ship with the app in full, and a run still uses those packaged copies when the seed folder does not already contain them. `applyapp init` does not copy anyone's private documents into the repo.
 
 Google Drive and a Google Sheet still work. Set `JOB_QUEUE=google` and `DOCUMENT_STORE=google`, add `credentials.json`, and run `python -m applyapp auth`. The 7:00am Mac schedule is optional.
 

@@ -31,6 +31,7 @@ from applyapp.llm import (
     invoke_structured,
 )
 from applyapp.models import Critique, FormattedDocument, JobAnalysis, JobRow, TailoredDocument
+from applyapp.setup_home import with_bundled_guidance
 from applyapp.posting import fetch_posting as download_posting
 from applyapp.posting import pasted_description_error, posting_body_error
 from applyapp.seeds import (
@@ -89,7 +90,7 @@ def fetch_posting(state: JobState, settings: Settings) -> dict:
 def load_seeds(state: JobState, settings: Settings) -> dict:
     """Load the seed folder once per job (Drive or LOCAL_SEED_DIR)."""
     del state
-    files = documents.list_seed_documents(settings)
+    files = with_bundled_guidance(documents.list_seed_documents(settings))
     library = build_library(files, settings.max_seed_chars)
     if not library.docs:
         raise RuntimeError("Seed folder is empty. Add accomplishments, writing samples, and guidance docs.")
