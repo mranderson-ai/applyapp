@@ -7,7 +7,7 @@ fictional. An existing `.env` is left alone so a working install is not overwrit
 import sys
 from pathlib import Path
 
-from applyapp.config import PROJECT_ROOT
+from applyapp.config import PROJECT_ROOT, write_private_text
 from applyapp.queue import _create_workbook
 
 EXAMPLE_SEEDS = Path(__file__).resolve().parent / "examples" / "seeds"
@@ -242,15 +242,15 @@ def _has_model_key(values: dict[str, str]) -> bool:
 
 
 def _write_env_lines(env_path: Path, lines: list[str]) -> None:
-    env_path.parent.mkdir(parents=True, exist_ok=True)
-    env_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    write_private_text(env_path, "\n".join(lines) + "\n")
 
 
 def _write_env(env_path: Path, seed_dir: Path, output_dir: Path, jobs_path: Path) -> str:
     """Write a local-only `.env` when the file is absent."""
     if env_path.exists():
         return f"Env:    left existing file in place ({env_path})"
-    env_path.write_text(
+    write_private_text(
+        env_path,
         "\n".join(
             [
                 "# Created by `applyapp init`. Local files, no Google account required.",
@@ -268,7 +268,7 @@ def _write_env(env_path: Path, seed_dir: Path, output_dir: Path, jobs_path: Path
                 "# CRITIQUE_BASE_URL=http://localhost:11434/v1",
                 "",
             ]
-        ),
-        encoding="utf-8",
+        )
+        + "\n",
     )
     return f"Env:    wrote {env_path}. Add an API key before doctor."

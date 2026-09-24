@@ -12,6 +12,7 @@ from docs_format.py — we never upload DOCX, so ATS parsers see real headings.
 
 import io
 import re
+import zipfile
 from pathlib import Path
 from typing import Any
 
@@ -36,11 +37,20 @@ TEXT_TYPES = {
 }
 
 
+MAX_SEED_BYTES = 8_000_000
+_MAX_XLSX_ROWS = 10_000
+_MAX_XLSX_COLS = 64
+_MAX_FORMULA_DEPTH = 32
+
+
 def _folder_id(value: str, label: str) -> str:
-    folder_id = parse_google_id(value)
-    if not folder_id:
-        raise RuntimeError(f"{label} is missing.")
-    return folder_id
+    raw = value.strip()
+    folder_id = parse_google_id(raw)
+    if folder_id:
+        return folder_id
+    if raw:
+        raise RuntimeError(f"{label} must be a Google URL or file id.")
+    raise RuntimeError(f"{label} is missing.")
 
 
 def list_seed_documents(settings: Settings) -> list[dict[str, Any]]:
@@ -163,9 +173,9 @@ def text_from_bytes(name: str, data: bytes) -> str:
     if suffix == ".pdf":
         return _pdf_text(data)
     if suffix == ".xlsx":
-        return _xlsx_text(data)
+        return _xlsx_text(data) if _zip_is_safe(data) else ""
     if suffix == ".docx":
-        return _docx_text(data)
+        return _docx_text(data) if _zip_is_safe(data) else ""
     if suffix in {".txt", ".md", ".markdown", ".csv", ".json"}:
         return data.decode("utf-8", errors="replace")
     return ""
@@ -183,9 +193,11 @@ def _read_file(drive, file: dict[str, Any]) -> str:
     if mime == "application/pdf":
         return _pdf_text(_download_bytes(drive, file_id))
     if mime == XLSX:
-        return _xlsx_text(_download_bytes(drive, file_id))
+        data = _download_bytes(drive, file_id)
+        return _xlsx_text(data) if _zip_is_safe(data) else ""
     if mime == DOCX:
-        return _docx_text(_download_bytes(drive, file_id))
+        data = _download_bytes(drive, file_id)
+        return _docx_text(data) if _zip_is_safe(data) else ""
     if mime in TEXT_TYPES or mime.startswith("text/"):
         return _download_bytes(drive, file_id).decode("utf-8", errors="replace")
     return ""
@@ -198,13 +210,33 @@ def _download_bytes(drive, file_id: str) -> bytes:
     done = False
     while not done:
         _, done = downloader.next_chunk()
+        if buffer.tell() > MAX_SEED_BYTES:
+            raise RuntimeError("Seed file is too large to load.")
     return buffer.getvalue()
 
 
 def _as_text(exported: bytes | str) -> str:
     if isinstance(exported, bytes):
-        return exported.decode("utf-8", errors="replace")
-    return str(exported)
+        text = exported.decode("utf-8", errors="replace")
+    else:
+        text = str(exported)
+    return text[:MAX_SEED_BYTES]
+
+
+def _zip_is_safe(data: bytes) -> bool:
+    """Reject archives whose uncompressed size is far larger than the file on disk."""
+    if len(data) > MAX_SEED_BYTES:
+        return False
+    try:
+        with zipfile.ZipFile(io.BytesIO(data)) as archive:
+            total = 0
+            for info in archive.infolist():
+                total += info.file_size
+                if info.file_size > 32_000_000 or total > 32_000_000:
+                    return False
+    except zipfile.BadZipFile:
+        return False
+    return True
 
 
 def _pdf_text(data: bytes) -> str:
@@ -216,7 +248,7 @@ def _pdf_text(data: bytes) -> str:
 def _xlsx_text(data: bytes) -> str:
     workbook = load_workbook(io.BytesIO(data), data_only=False, read_only=True)
     try:
-        grids = {sheet.title: [[cell.value for cell in row] for row in sheet.iter_rows()] for sheet in workbook.worksheets}
+        grids = {sheet.title: _xlsx_grid(sheet) for sheet in workbook.worksheets}
         titles = [sheet.title for sheet in workbook.worksheets]
     finally:
         workbook.close()
@@ -236,6 +268,22 @@ def _xlsx_text(data: bytes) -> str:
         if rows:
             blocks.append(f"### Tab: {title}\n" + "\n".join(rows))
     return "\n\n".join(blocks)
+
+
+def _xlsx_grid(sheet) -> list[list[Any]]:
+    """Cap rows and columns so a hostile workbook cannot expand without limit.
+
+    Trailing empty cells are dropped. A small sheet must not grow to the cap.
+    """
+    rows: list[list[Any]] = []
+    for row in sheet.iter_rows(max_col=_MAX_XLSX_COLS):
+        values = [cell.value for cell in row]
+        while values and values[-1] in (None, ""):
+            values.pop()
+        rows.append(values)
+        if len(rows) >= _MAX_XLSX_ROWS:
+            break
+    return rows
 
 
 class _FormulaError(Exception):
@@ -266,6 +314,8 @@ def _xlsx_eval(
 ) -> Any:
     """Evaluate one cell. Formulas are resolved so role tabs stay consistent with Master."""
     key = (sheet, row, col)
+    if len(stack) > _MAX_FORMULA_DEPTH:
+        raise _FormulaError("formula too deep")
     if key in cache:
         return cache[key]
     if key in stack:

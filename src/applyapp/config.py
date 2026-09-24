@@ -5,6 +5,7 @@ so `.env`, `credentials.json`, and `token.json` resolve the same way whether you
 run from Cursor, a LaunchAgent, or a future desktop wrapper.
 """
 
+import os
 from pathlib import Path
 
 from pydantic import Field
@@ -81,5 +82,28 @@ class Settings(BaseSettings):
     max_seed_chars: int = 150_000
 
 
+def write_private_text(path: Path, text: str) -> None:
+    """Write a secret file other accounts on this machine cannot read."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+        handle.write(text)
+    os.chmod(path, 0o600)
+
+
+def tighten_private_file(path: Path) -> None:
+    """Restrict an existing secret file. Missing files and chmod failures are ignored."""
+    if not path.exists():
+        return
+    try:
+        os.chmod(path, 0o600)
+    except OSError:
+        return
+
+
 def get_settings() -> Settings:
-    return Settings()
+    tighten_private_file(PROJECT_ROOT / ".env")
+    settings = Settings()
+    tighten_private_file(Path(settings.google_credentials_path))
+    tighten_private_file(Path(settings.google_token_path))
+    return settings

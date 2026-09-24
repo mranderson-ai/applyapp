@@ -20,6 +20,7 @@ def test_init_writes_env_when_missing_and_example_names_classify(tmp_path):
     assert "JOB_QUEUE=local" in text
     assert "DOCUMENT_STORE=local" in text
     assert "ANTHROPIC_API_KEY=" in text
+    assert (env_file.stat().st_mode & 0o777) == 0o600
     names = [path.name for path in EXAMPLE_SEEDS.iterdir() if path.is_file()]
     roles = {classify(name, []) for name in names}
     assert {"accomplishments", "human_writings", "ats_guidance", "document_design", "prior_resume"} <= roles

@@ -17,15 +17,15 @@ HEADERS = [
 def test_pending_and_processing_are_runnable():
     rows = [
         HEADERS,
-        ["https://jobs.example.com/a", "Ramp", "Partner", "", "", "", "", "pending", ""],
-        ["https://jobs.example.com/b", "Figma", "SE", "", "", "", "", "processing", ""],
+        ["https://jobs.example.com/a", "Northwind", "Partner", "", "", "", "", "pending", ""],
+        ["https://jobs.example.com/b", "Contoso", "SE", "", "", "", "", "processing", ""],
         ["https://jobs.example.com/c", "X", "Y", "", "", "http://docs", "", "ready_for_review", ""],
         ["https://jobs.example.com/d", "Z", "W", "", "", "", "", "error", "boom"],
         ["not-a-url", "", "", "", "", "", "", "pending", ""],
     ]
     jobs = jobs_from_grid(rows)
     assert [job.sheet_row for job in jobs] == [2, 3]
-    assert jobs[0].company == "Ramp"
+    assert jobs[0].company == "Northwind"
     assert jobs[1].status == "processing"
 
 
@@ -57,8 +57,8 @@ def test_posting_text_is_kept_with_company_and_role():
         headers,
         [
             "https://jobs.example.com/a",
-            "Alteryx",
-            "Sr. Partner Sales Engineer",
+            "Northwind",
+            "Solutions Engineer",
             description,
             "",
             "Senior",
@@ -71,15 +71,15 @@ def test_posting_text_is_kept_with_company_and_role():
     jobs = jobs_from_grid(rows)
     assert len(jobs) == 1
     assert jobs[0].posting_text == description.strip()
-    assert jobs[0].company == "Alteryx"
-    assert jobs[0].role == "Sr. Partner Sales Engineer"
+    assert jobs[0].company == "Northwind"
+    assert jobs[0].role == "Solutions Engineer"
 
 
 def test_blank_role_is_not_invented_when_a_description_was_pasted():
     headers = ["Job Postings", "Company", "Role", "Posting Text", "Organization", "Level", "Status"]
     rows = [
         headers,
-        ["https://jobs.example.com/a", "Alteryx", "", "A real description. " * 20, "Sales", "Senior", "pending"],
+        ["https://jobs.example.com/a", "Northwind", "", "A real description. " * 20, "Sales", "Senior", "pending"],
     ]
     jobs = jobs_from_grid(rows)
     assert jobs[0].role == ""
@@ -102,14 +102,14 @@ def test_writes_company_role_and_error():
             job,
             {
                 "status": "ready_for_review",
-                "company": "Ramp",
+                "company": "Northwind",
                 "role": "Partner Consultant",
                 "error": "",
                 "resume_doc_url": "https://docs.google.com/document/d/abc",
             },
         )
     )
-    assert writes["B2"] == "Ramp"
+    assert writes["B2"] == "Northwind"
     assert writes["C2"] == "Partner Consultant"
     assert writes["H2"] == "ready_for_review"
     assert writes["I2"] == ""

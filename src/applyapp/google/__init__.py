@@ -1,9 +1,10 @@
 """Google API helpers: OAuth, Sheets, Drive, Docs.
 
 Used when JOB_QUEUE or DOCUMENT_STORE is `google`. A fully local run does not
-need these. Keep Drive/Docs/Sheets tokens in one desktop OAuth client. Scopes
-are full spreadsheets + drive + documents because we both read seeds and write
-output Docs. `parse_google_id` accepts a full URL or a raw ID so `.env` can store either.
+need these. Keep Drive/Docs/Sheets tokens in one desktop OAuth client. The
+Drive scope can read and change files in that Google account, because seed
+folders are chosen by URL. `token.json` is readable only by the user who signed
+in. `parse_google_id` accepts a full URL or a raw ID so `.env` can store either.
 """
 
 from applyapp.google.auth import (

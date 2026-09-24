@@ -37,10 +37,13 @@ PENDING_STATUSES = {"", "pending", "processing"}  # processing = reclaim after a
 
 
 def _sheet_id(settings: Settings) -> str:
-    sheet_id = parse_google_id(settings.google_sheet_id)
-    if not sheet_id:
-        raise RuntimeError("GOOGLE_SHEET_ID is missing.")
-    return sheet_id
+    raw = settings.google_sheet_id.strip()
+    sheet_id = parse_google_id(raw)
+    if sheet_id:
+        return sheet_id
+    if raw:
+        raise RuntimeError("GOOGLE_SHEET_ID must be a Google URL or file id.")
+    raise RuntimeError("GOOGLE_SHEET_ID is missing.")
 
 
 def _norm(value: str) -> str:

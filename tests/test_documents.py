@@ -27,7 +27,7 @@ def test_local_store_reads_seeds_and_writes_docx(tmp_path):
         [
             {"kind": "name", "text": "Alex Rivera"},
             {"kind": "section", "text": "summary"},
-            {"kind": "job_header", "text": "Director          July 2025 – August 2026"},
+            {"kind": "job_header", "text": "Solutions Engineer          Jan 2022 – Mar 2025"},
             {"kind": "bullet", "text": "Shipped the thing"},
         ],
     )
@@ -42,8 +42,8 @@ def test_local_store_reads_seeds_and_writes_docx(tmp_path):
     assert str(name.runs[0].font.color.rgb) == "1A2B44"
     assert document.paragraphs[1].text == "SUMMARY"
     header = document.paragraphs[2].text
-    assert header.startswith("Director\t")
-    assert "July 2025" in header
+    assert header.startswith("Solutions Engineer\t")
+    assert "Jan 2022" in header
     assert "Shipped the thing" in document.paragraphs[3].text
 
 

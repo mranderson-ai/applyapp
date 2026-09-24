@@ -149,6 +149,12 @@ CRITIQUE_BASE_URL=http://localhost:11434/v1
 
 A localhost URL does not need a real key. `applyapp doctor` prints the resolved provider and model for every step, and never prints the key. The model must support structured JSON output.
 
+## Secrets and safety
+
+`.env`, `credentials.json`, and `token.json` stay out of git. `applyapp init` and `applyapp auth` write `.env` and `token.json` so only your user can read them. The Google token can read and change Drive files that account can open, because seed and output folders are chosen by URL. Do not share that file.
+
+Job links must be public `http` or `https` pages. Links to this machine, private networks, or cloud metadata addresses are refused, including after a redirect. Text from a posting is treated as data for the model, not as instructions.
+
 ## Commands
 
 | Command | What it does |

@@ -18,7 +18,7 @@ from pathlib import Path
 from applyapp.config import PROJECT_ROOT, Settings, get_settings
 from applyapp.documents import storage_checks, storage_errors
 from applyapp.queue import fetch_pending_jobs, needs_google, queue_checks, queue_errors
-from applyapp.errors import error_message
+from applyapp.errors import error_message, redact_secrets
 from applyapp.google.auth import credentials, token_health
 from applyapp.graph import build_job_graph
 from applyapp.llm import STEPS, ModelConfigError, resolve_model
@@ -27,6 +27,13 @@ from applyapp.nodes import claim_job, mark_error
 from applyapp.setup_home import ensure_configured, init_home
 
 logger = logging.getLogger("applyapp")
+
+
+class _RedactingFormatter(logging.Formatter):
+    """Logs can include provider exceptions. Strip keys before they hit daily.log."""
+
+    def format(self, record: logging.LogRecord) -> str:
+        return redact_secrets(super().format(record))
 LAUNCH_AGENT = Path.home() / "Library/LaunchAgents/com.applyapp.daily.plist"
 LOCK_PATH = PROJECT_ROOT / "tmp" / "applyapp.run.lock"
 
@@ -60,10 +67,9 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("doctor", help="Check models, queue, document store, and credentials")
     args = parser.parse_args(argv)
 
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s %(levelname)s %(message)s",
-    )
+    handler = logging.StreamHandler()
+    handler.setFormatter(_RedactingFormatter("%(asctime)s %(levelname)s %(message)s"))
+    logging.basicConfig(level=logging.INFO, handlers=[handler], force=True)
     if args.command == "init":
         for line in init_home(args.home, env_file=args.env_file):
             print(line)

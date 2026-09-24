@@ -7,6 +7,7 @@ jobs.xlsx). Both stores return the same file dicts (`name`, `parents`, `text`)
 and URL strings the queue can store.
 """
 
+import logging
 from pathlib import Path
 
 from applyapp.config import Settings
@@ -14,6 +15,7 @@ from applyapp.docx_format import write_plain_docx, write_styled_docx
 from applyapp.google import drive as gdrive
 
 STORES = ("google", "local")
+logger = logging.getLogger(__name__)
 
 
 def list_seed_documents(settings: Settings) -> list[dict]:
@@ -37,7 +39,7 @@ def create_output_folder(settings: Settings, name: str) -> tuple[str, str]:
 def create_styled_doc(settings: Settings, folder_id: str, title: str, blocks: list[dict]) -> str:
     """Write a styled Google Doc, or a formatted .docx with the same block tree."""
     if _store(settings) == "local":
-        path = _local_path(folder_id, title)
+        path = _local_path(settings, folder_id, title)
         write_styled_docx(path, blocks)
         return path.resolve().as_uri()
     return gdrive.create_styled_doc(settings, folder_id, title, blocks)
@@ -46,7 +48,7 @@ def create_styled_doc(settings: Settings, folder_id: str, title: str, blocks: li
 def create_text_doc(settings: Settings, folder_id: str, title: str, body: str) -> str:
     """Write a plain Google Doc, or a .docx (QA notes)."""
     if _store(settings) == "local":
-        path = _local_path(folder_id, title)
+        path = _local_path(settings, folder_id, title)
         write_plain_docx(path, body.strip() + "\n")
         return path.resolve().as_uri()
     return gdrive.create_text_doc(settings, folder_id, title, body)
@@ -91,6 +93,13 @@ def _local_seeds(settings: Settings) -> list[dict]:
         raise RuntimeError(f"LOCAL_SEED_DIR is not a directory: {root}")
     loaded: list[dict] = []
     for path in sorted(item for item in root.rglob("*") if item.is_file() and not item.name.startswith(".")):
+        resolved = path.resolve()
+        if not resolved.is_relative_to(root):
+            logger.warning("Skipping %s because it is outside the seed folder", path.name)
+            continue
+        if resolved.stat().st_size > gdrive.MAX_SEED_BYTES:
+            logger.warning("Skipping %s because it is larger than the seed limit", path.name)
+            continue
         parents = list(path.relative_to(root).parent.parts)
         if parents == ["."]:
             parents = []
@@ -98,7 +107,7 @@ def _local_seeds(settings: Settings) -> list[dict]:
             {
                 "name": path.name,
                 "parents": parents,
-                "text": gdrive.text_from_bytes(path.name, path.read_bytes()),
+                "text": gdrive.text_from_bytes(path.name, resolved.read_bytes()),
             }
         )
     return loaded
@@ -111,5 +120,11 @@ def _output_root(settings: Settings) -> Path:
     return Path(raw).expanduser().resolve()
 
 
-def _local_path(folder_id: str, title: str) -> Path:
-    return Path(folder_id) / f"{gdrive.slug(title)}.docx"
+def _local_path(settings: Settings, folder_id: str, title: str) -> Path:
+    """Finished files stay inside LOCAL_OUTPUT_DIR, even if a title tries to leave it."""
+    root = _output_root(settings)
+    folder = Path(folder_id).expanduser().resolve()
+    path = (folder / f"{gdrive.slug(title)}.docx").resolve()
+    if not folder.is_relative_to(root) or not path.is_relative_to(root):
+        raise RuntimeError("Refusing to write outside LOCAL_OUTPUT_DIR.")
+    return path

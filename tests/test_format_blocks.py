@@ -9,16 +9,16 @@ def test_resume_adds_summary_caps_bullets_and_middot_contact():
             {"kind": "contact", "text": "Austin, TX | (555) 010-0100 | alex.rivera@example.com"},
             {"kind": "paragraph", "text": "A four-line summary of real experience."},
             {"kind": "section", "text": "PROFESSIONAL EXPERIENCE"},
-            {"kind": "job_header", "text": "Director, Partner Success · July 2025 – August 2026"},
-            {"kind": "meta", "text": "Northwind"},
+            {"kind": "job_header", "text": "Partner Success Manager · Apr 2025 – Present"},
+            {"kind": "meta", "text": "Northwind Analytics"},
             *[{"kind": "bullet", "text": f"recent-{i}"} for i in range(6)],
-            {"kind": "job_header", "text": "SE May 2020 – June 2025"},
+            {"kind": "job_header", "text": "Solutions Engineer Jan 2022 – Mar 2025"},
             *[{"kind": "bullet", "text": f"se-{i}"} for i in range(6)],
-            {"kind": "job_header", "text": "CSM June 2018 – May 2020"},
+            {"kind": "job_header", "text": "Campus Ambassador Jun 2019 – Dec 2021"},
             *[{"kind": "bullet", "text": f"csm-{i}"} for i in range(4)],
             {"kind": "section", "text": "CORE COMPETENCIES"},
-            {"kind": "bullet", "text": "GTM"},
-            {"kind": "bullet", "text": "Salesforce"},
+            {"kind": "bullet", "text": "Demos"},
+            {"kind": "bullet", "text": "Analytics"},
             {"kind": "section", "text": "EDUCATION"},
             {"kind": "paragraph", "text": "Example University"},
         ],
@@ -48,7 +48,7 @@ def test_resume_drops_invented_title_under_the_contact_line():
         [
             {"kind": "name", "text": "Alex Rivera"},
             {"kind": "contact", "text": "Austin, TX | alex.rivera@example.com"},
-            {"kind": "target_title", "text": "Principal Solutions Engineer, AI Agent"},
+            {"kind": "target_title", "text": "Principal Partner Engineer, Analytics"},
             {"kind": "section", "text": "SUMMARY"},
             {"kind": "paragraph", "text": "A four-line summary of real experience."},
         ],
@@ -57,12 +57,12 @@ def test_resume_drops_invented_title_under_the_contact_line():
     texts = [item["text"] for item in blocks]
     assert texts[:3] == ["Alex Rivera", texts[1], "SUMMARY"]
     assert "Principal" not in " ".join(texts)
-    assert "(AI)" not in " ".join(
+    assert "(Analytics)" not in " ".join(
         polish(
             [
                 {"kind": "name", "text": "Alex Rivera"},
                 {"kind": "contact", "text": "Austin | alex.rivera@example.com"},
-                {"kind": "paragraph", "text": "PRODUCT PARTNER MANAGER (AI)"},
+                {"kind": "paragraph", "text": "PARTNER ENGINEER (ANALYTICS)"},
                 {"kind": "section", "text": "SUMMARY"},
                 {"kind": "paragraph", "text": "A real summary."},
             ],
@@ -123,7 +123,7 @@ def test_cover_strips_re_and_rewrites_sincerely():
     cover = polish(
         [
             {"kind": "paragraph", "text": "October 24, 2026"},
-            {"kind": "paragraph", "text": "Ramp"},
+            {"kind": "paragraph", "text": "Northwind"},
             {"kind": "paragraph", "text": "RE: Partner role"},
             {"kind": "paragraph", "text": "Dear Hiring Manager,"},
             {"kind": "paragraph", "text": "Body of the letter."},
@@ -132,12 +132,12 @@ def test_cover_strips_re_and_rewrites_sincerely():
         ],
         "cover",
         header_from=resume,
-        company="Ramp",
+        company="Northwind",
     )
     texts = [item["text"] for item in cover]
     assert texts[0] == "Alex Rivera"
     assert " · " in texts[1]
-    assert "Dear Ramp Team," in texts
+    assert "Dear Northwind Team," in texts
     assert not any(text.startswith("RE:") for text in texts)
     assert "Sincerely," not in texts
     assert "Best," in texts
@@ -146,61 +146,61 @@ def test_cover_strips_re_and_rewrites_sincerely():
 def test_summary_must_open_with_a_held_title_and_the_letter_uses_the_posting_title():
     resume = """
 SUMMARY
-Principal Solutions Engineer with 12 years in SaaS.
+Principal Partner Engineer with three years in analytics.
 EXPERIENCE
-Lead / Senior Solutions Engineer    May 2020 – June 2025
+Solutions Engineer    Jan 2022 – Mar 2025
 - a
 """
-    note = summary_opening_feedback(resume, "Solutions Engineer, AI Agent")
+    note = summary_opening_feedback(resume, "Partner Engineer, Analytics")
     assert "principal" in note
     assert summary_opening_feedback(
-        resume.replace("Principal Solutions Engineer", "Lead Solutions Engineer"),
-        "Solutions Engineer, AI Agent",
+        resume.replace("Principal Partner Engineer", "Solutions Engineer"),
+        "Partner Engineer, Analytics",
     ) == ""
     assert "parenthetical" in cover_title_feedback(
-        "I'm reaching out about the Product Partner Manager (AI) role.",
-        "Product Partner Manager",
+        "I'm reaching out about the Partner Engineer (Analytics) role.",
+        "Partner Engineer",
     )
     assert cover_title_feedback(
-        "I'm reaching out about the Product Partner Manager role.",
-        "Product Partner Manager",
+        "I'm reaching out about the Partner Engineer role.",
+        "Partner Engineer",
     ) == ""
     assert "seniority" in cover_title_feedback(
-        "I'm reaching out about the Principal Solutions Engineer, AI Agent role.",
-        "Solutions Engineer, AI Agent",
+        "I'm reaching out about the Principal Partner Engineer role.",
+        "Partner Engineer",
     )
     assert cover_title_feedback(
-        "I'm reaching out about the Principal Solutions Engineer role.",
-        "Principal Solutions Engineer",
+        "I'm reaching out about the Principal Partner Engineer role.",
+        "Principal Partner Engineer",
     ) == ""
     assert cover_title_feedback(
-        "I'm reaching out about the Product Partner Manager (AI) role.",
-        "Product Partner Manager (AI)",
+        "I'm reaching out about the Partner Engineer (Analytics) role.",
+        "Partner Engineer (Analytics)",
     ) == ""
     assert "parenthetical" in cover_title_feedback(
-        "I'm reaching out about the Product Partner Manager (AI) (Remote) role.",
-        "Product Partner Manager (AI)",
+        "I'm reaching out about the Partner Engineer (Analytics) (Remote) role.",
+        "Partner Engineer (Analytics)",
     )
 
 
 def test_resume_length_feedback_flags_overlong_roles():
     note = resume_length_feedback(
         """
-Director, Partner Success — July 2025 – August 2026
+Partner Success Manager — Apr 2025 – Present
 - a
 - b
 - c
 - d
 - e
 - f
-SE — May 2020 – June 2025
+Solutions Engineer — Jan 2022 – Mar 2025
 - a
 - b
 - c
 - d
 - e
 - f
-CSM — June 2018 – May 2020
+Campus Ambassador — Jun 2019 – Dec 2021
 - a
 - b
 - c

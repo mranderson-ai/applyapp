@@ -14,7 +14,13 @@ jobs.csv
 jobs.xlsx
 credentials.json
 client_secret*.json
+service-account*.json
 token.json
+*.pem
+*.key
+id_rsa
+id_ed25519
+secrets/
 logs/
 tmp/
 .DS_Store

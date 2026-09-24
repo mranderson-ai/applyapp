@@ -9,12 +9,14 @@ JSON is read directly. Playwright is deliberately out of V1 — pages that still
 have no description should land in Error for a human to paste a better URL.
 """
 
+import ipaddress
 import json
 import logging
 import re
+import socket
 from html import unescape
 from html.parser import HTMLParser
-from urllib.parse import parse_qs, quote, unquote, urlparse
+from urllib.parse import parse_qs, quote, unquote, urljoin, urlparse
 
 import httpx
 import trafilatura
@@ -25,6 +27,109 @@ USER_AGENT = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
 )
+_MAX_RESPONSE_BYTES = 2_000_000
+_MAX_REDIRECTS = 5
+_BLOCKED_HOSTS = {
+    "localhost",
+    "localhost.localdomain",
+    "metadata",
+    "metadata.google.internal",
+}
+_ATS_HOSTS = (
+    "jobs.ashbyhq.com",
+    "job-boards.greenhouse.io",
+    "boards.greenhouse.io",
+    "jobs.lever.co",
+)
+
+
+class UnsafeUrlError(RuntimeError):
+    """The job link is not a public http(s) page."""
+
+
+def validate_public_url(url: str) -> str:
+    """Reject non-http(s) links, credentials in the URL, and non-public addresses.
+
+    Checked again after every redirect. A careers page that points at loopback,
+    a private network, or a cloud metadata address is not fetched.
+    """
+    parsed = urlparse(url.strip())
+    host = (parsed.hostname or "").lower().rstrip(".")
+    if parsed.scheme not in {"http", "https"} or not host or parsed.username or parsed.password:
+        raise UnsafeUrlError(_refusal(url))
+    if host in _BLOCKED_HOSTS or host.endswith((".local", ".localhost", ".internal", ".localdomain")):
+        raise UnsafeUrlError(_refusal(url))
+    literal = _parse_ip(host)
+    if literal is not None:
+        if _non_public(literal):
+            raise UnsafeUrlError(_refusal(url))
+        return url
+    if _looks_like_ip(host):
+        raise UnsafeUrlError(_refusal(url))
+    port = parsed.port or (443 if parsed.scheme == "https" else 80)
+    try:
+        records = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
+    except socket.gaierror as exc:
+        raise UnsafeUrlError(_refusal(url)) from exc
+    if not records:
+        raise UnsafeUrlError(_refusal(url))
+    for record in records:
+        address = ipaddress.ip_address(record[4][0])
+        if _non_public(address):
+            raise UnsafeUrlError(_refusal(url))
+    return url
+
+
+def _non_public(address: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
+    mapped = address.ipv4_mapped if isinstance(address, ipaddress.IPv6Address) else None
+    if mapped is not None and not mapped.is_global:
+        return True
+    return not address.is_global
+
+
+def _parse_ip(host: str) -> ipaddress.IPv4Address | ipaddress.IPv6Address | None:
+    """Parse a literal, including decimal, hex, and short dotted forms some stacks accept."""
+    try:
+        return ipaddress.ip_address(host)
+    except ValueError:
+        pass
+    token = host.lower()
+    if token.startswith("0x"):
+        try:
+            return ipaddress.ip_address(int(token, 16))
+        except ValueError:
+            return None
+    if token.isdigit():
+        try:
+            return ipaddress.ip_address(int(token))
+        except ValueError:
+            return None
+    parts = token.split(".")
+    if not 2 <= len(parts) <= 4 or not all(part.isdigit() for part in parts):
+        return None
+    numbers = [int(part) for part in parts]
+    if any(number > 255 for number in numbers):
+        return None
+    if len(numbers) == 2:
+        numbers = [numbers[0], 0, 0, numbers[1]]
+    elif len(numbers) == 3:
+        numbers = [numbers[0], numbers[1], 0, numbers[2]]
+    try:
+        return ipaddress.ip_address(".".join(str(number) for number in numbers))
+    except ValueError:
+        return None
+
+
+def _looks_like_ip(host: str) -> bool:
+    return bool(re.fullmatch(r"(?:0x[0-9a-f]+|\d+)(?:\.(?:0x[0-9a-f]+|\d+)){0,3}", host, re.I))
+
+
+def _refusal(url: str) -> str:
+    host = urlparse(url).hostname or "that link"
+    return (
+        f"Refusing to fetch {host}. Job links must be public http or https pages. "
+        "Paste the description into Posting Text if the page cannot be read."
+    )
 
 
 class _TextExtractor(HTMLParser):
@@ -60,7 +165,7 @@ def fetch_posting_text(url: str, max_chars: int) -> str:
 
 def fetch_posting(url: str, max_chars: int) -> tuple[str, str]:
     """Return `(plain_text, official_title)`. Title comes from the page, not the model."""
-    with httpx.Client(follow_redirects=True, timeout=30.0, headers={"User-Agent": USER_AGENT}) as client:
+    with httpx.Client(follow_redirects=False, timeout=30.0, headers={"User-Agent": USER_AGENT}) as client:
         html = _download_html(client, url)
         text, title = extract_posting(html)
         embed = ""
@@ -78,9 +183,29 @@ def fetch_posting(url: str, max_chars: int) -> tuple[str, str]:
 
 
 def _download_html(client: httpx.Client, url: str) -> str:
-    response = client.get(url)
-    response.raise_for_status()
-    return response.text
+    """GET a public page. Redirects are checked one hop at a time, and the body is capped."""
+    current = url
+    for _ in range(_MAX_REDIRECTS + 1):
+        validate_public_url(current)
+        with client.stream("GET", current) as response:
+            if response.is_redirect:
+                location = response.headers.get("location", "")
+                current = urljoin(current, location)
+                continue
+            response.raise_for_status()
+            length = response.headers.get("content-length")
+            if length and length.isdigit() and int(length) > _MAX_RESPONSE_BYTES:
+                raise RuntimeError("Job page is too large to download.")
+            chunks: list[bytes] = []
+            size = 0
+            for chunk in response.iter_bytes():
+                size += len(chunk)
+                if size > _MAX_RESPONSE_BYTES:
+                    raise RuntimeError("Job page is too large to download.")
+                chunks.append(chunk)
+            encoding = response.encoding or "utf-8"
+        return b"".join(chunks).decode(encoding, errors="replace")
+    raise RuntimeError("Job page redirected too many times.")
 
 
 def extract_posting(html: str) -> tuple[str, str]:
@@ -176,11 +301,22 @@ def ashby_job_url(job_id: str, org: str) -> str:
     return f"https://jobs.ashbyhq.com/{quote(org, safe='')}/{job_id}"
 
 
+def _script_allowed(page_url: str, script_url: str) -> bool:
+    """Scripts may be read only from the careers host or a known job-board host."""
+    page_host = (urlparse(page_url).hostname or "").lower().rstrip(".")
+    script_host = (urlparse(script_url).hostname or "").lower().rstrip(".")
+    if not script_host:
+        return False
+    if script_host == page_host:
+        return True
+    return any(script_host == host or script_host.endswith("." + host) for host in _ATS_HOSTS)
+
+
 def ashby_job_url_from_scripts(client: httpx.Client, page_url: str, html: str) -> str:
     """Follow an Ashby embed whose board name lives in a JavaScript file, not the HTML.
 
-    Superhuman's careers page is a shell with `ashby_jid` and `<div id="ashby_embed">`.
-    The company name is inside a script the page loads, which then injects the iframe.
+    Some careers pages are a shell with `ashby_jid` and `<div id="ashby_embed">`.
+    The board name is inside a script the page loads, which then injects the iframe.
     """
     job_id = (parse_qs(urlparse(page_url).query).get("ashby_jid") or [""])[0].strip()
     if not re.fullmatch(r"[0-9a-fA-F-]{36}", job_id):
@@ -193,10 +329,13 @@ def ashby_job_url_from_scripts(client: httpx.Client, page_url: str, html: str) -
     if len(orgs) > 1:
         return ""
     for src in _script_urls(page_url, html):
+        if not _script_allowed(page_url, src):
+            logger.info("Skipping a script that is not on the careers site or a known job board")
+            continue
         try:
-            script = client.get(src).text
-        except httpx.HTTPError:
-            logger.warning("Could not read script %s while looking for an Ashby embed", src)
+            script = _download_html(client, src)
+        except (httpx.HTTPError, UnsafeUrlError, RuntimeError):
+            logger.warning("Could not read a script while looking for an Ashby embed")
             continue
         if "ashby" not in script.lower():
             continue

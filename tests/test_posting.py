@@ -58,25 +58,25 @@ def test_ashby_embed_script_contains_the_posting():
 
 def test_embedded_board_url_is_taken_from_the_page():
     job_id = "11111111-2222-4333-8444-555555555555"
-    ramp = f"https://jobs.ashbyhq.com/Ramp/{job_id}"
-    shell = f'<iframe src="{ramp}?embed=js"></iframe><p>Careers</p>'
-    assert embedded_job_url("https://ramp.com/careers", shell) == f"{ramp}?embed=js"
+    board = f"https://jobs.ashbyhq.com/Northwind/{job_id}"
+    shell = f'<iframe src="{board}?embed=js"></iframe><p>Careers</p>'
+    assert embedded_job_url("https://northwind.example/careers", shell) == f"{board}?embed=js"
     script = f"https://example.com/careers?ashby_jid={job_id}"
-    html = '<script src="https://jobs.ashbyhq.com/Ramp/embed?version=2"></script>'
-    assert embedded_job_url(script, html) == ramp
+    html = '<script src="https://jobs.ashbyhq.com/Northwind/embed?version=2"></script>'
+    assert embedded_job_url(script, html) == board
     assert embedded_job_url("https://example.com/careers", "<p>Privacy Policy</p>") == ""
 
 
 def test_ashby_embed_script_names_the_board_when_the_page_does_not():
     job_id = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"
     script = (
-        'let h="https://jobs.ashbyhq.com/".concat(encodeURIComponent("Superhuman Platform Inc"),"/embed?version=2");'
+        'let h="https://jobs.ashbyhq.com/".concat(encodeURIComponent("Northwind Analytics"),"/embed?version=2");'
     )
-    assert ashby_orgs_in_source(script) == ["Superhuman Platform Inc"]
-    assert ashby_job_url(job_id, "Superhuman Platform Inc") == (
-        f"https://jobs.ashbyhq.com/Superhuman%20Platform%20Inc/{job_id}"
+    assert ashby_orgs_in_source(script) == ["Northwind Analytics"]
+    assert ashby_job_url(job_id, "Northwind Analytics") == (
+        f"https://jobs.ashbyhq.com/Northwind%20Analytics/{job_id}"
     )
-    assert ashby_orgs_in_source("https://jobs.ashbyhq.com/Ramp/embed?version=2") == ["Ramp"]
+    assert ashby_orgs_in_source("https://jobs.ashbyhq.com/Northwind/embed?version=2") == ["Northwind"]
 
 
 def test_ashby_careers_page_points_at_the_job_board():

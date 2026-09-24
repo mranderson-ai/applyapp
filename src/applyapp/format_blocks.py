@@ -648,7 +648,7 @@ def _close_token(text: str) -> str:
 def _is_signoff_name(text: str, name: str) -> bool:
     """True when `text` is the letterhead name or a nickname already written in it.
 
-    "Alex (Al) Rivera" also matches "Alex Rivera" and "Al Rivera".
+    The fictional sample "Alex (Al) Rivera" also matches "Alex Rivera" and "Al Rivera".
     The nickname comes from the document, not from a built-in list of people.
     """
     return _close_token(text) in _name_forms(name)
@@ -698,7 +698,7 @@ def _drop_header_title(items: list[dict[str, str]]) -> list[dict[str, str]]:
 
     The spec allows that line only when it is a true description of the person.
     The format model treats it as the job being applied for and invents words
-    ("Principal", "(AI)"). The other resumes go straight to SUMMARY, which is
+    ("Principal", "(AI)"). The resume goes straight to SUMMARY, which is
     the line that carries positioning.
     """
     out: list[dict[str, str]] = []

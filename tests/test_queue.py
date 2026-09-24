@@ -64,11 +64,11 @@ def test_existing_workbook_gains_posting_text_without_losing_tracking_columns(tm
             "Status",
             "Error",
             "Applied",
-            "Success (first interview)",
+            "Notes",
             "Reason",
         ]
     )
-    sheet.append(["https://jobs.example.com/a", "Alteryx", "Sr. Partner Sales Engineer", "", "", "", "", "pending", "", "", "Yes", ""])
+    sheet.append(["https://jobs.example.com/a", "Contoso", "Solutions Engineer", "", "", "", "", "pending", "", "", "Yes", ""])
     sheet.column_dimensions["K"].width = 24
     validation = DataValidation(type="list", formula1='"TBD,Yes,No"', allow_blank=True)
     validation.add("K2:K14")
@@ -78,16 +78,16 @@ def test_existing_workbook_gains_posting_text_without_losing_tracking_columns(tm
     settings = Settings(job_queue="local", local_jobs_path=str(path))
     jobs = fetch_pending_jobs(settings)
     assert len(jobs) == 1
-    assert jobs[0].company == "Alteryx"
-    assert jobs[0].role == "Sr. Partner Sales Engineer"
+    assert jobs[0].company == "Contoso"
+    assert jobs[0].role == "Solutions Engineer"
     assert jobs[0].posting_text == ""
 
     saved = load_workbook(path)
     headers = [saved.active.cell(1, col).value for col in range(1, 13)]
     assert headers[3] == "Posting Text"
     assert headers[10] == "Applied"
-    assert headers[11] == "Success (first interview)"
-    assert saved.active["B2"].value == "Alteryx"
+    assert headers[11] == "Notes"
+    assert saved.active["B2"].value == "Contoso"
     assert saved.active["L2"].value == "Yes"
     ranges = [str(item.sqref) for item in saved.active.data_validations.dataValidation]
     assert ranges == ["L2:L14"]

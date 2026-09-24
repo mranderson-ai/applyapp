@@ -3,8 +3,8 @@
 Typography numbers here are what both writers apply: Google Docs and the local
 .docx. Edit this file and the seed `ApplyApp Document Design` together if you change
 the look. STYLES keys must match BlockKind in models.py. Navy is #1A2B44 from
-the spec (not a darker navy we tried first). Spacing is tight on purpose: 11pt
-body plus five roles only fits two pages if section/bullet gaps stay small.
+the spec. Spacing is tight on purpose: 11pt body and several roles fit on
+two pages only when section and bullet gaps stay small.
 """
 
 from __future__ import annotations
@@ -172,6 +172,6 @@ May not: invent employers, dates, metrics, skills, or a new target title; length
 Edit checklist
 - If you hate Calibri, change the typeface here (keep it a system font Google Docs has).
 - If you want a hairline under the name instead of under sections, say so.
-- If cover letters should include company address / “Dear Ramp Hiring Team,” add that.
+- If cover letters should include a company address or a different greeting, say so here.
 - Keep this document’s title as “ApplyApp Document Design” so the agent keeps classifying it as the design spec.
 """.strip()

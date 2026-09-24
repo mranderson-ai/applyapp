@@ -85,8 +85,6 @@ def classify(name: str, parents: list[str]) -> str:
     """Map a seed file to a role. Order matters: ATS/design before generic 'resume'."""
     n = _norm(name)
     folder = _norm(" / ".join(parents))
-    if "seeding build prompt" in n:
-        return ROLE_SKIP
     if "resume optimization" in n or "hr ai paper" in n or "optimization paper" in n:
         return ROLE_ATS
     if "document design" in n:

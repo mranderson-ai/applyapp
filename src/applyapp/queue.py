@@ -129,9 +129,7 @@ def _update_local(settings: Settings, job: JobRow, changes: dict[str, str]) -> J
     for field, col in gsheets.field_columns(job).items():
         if field not in changes or col is None:
             continue
-        cell = sheet.cell(row=job.sheet_row, column=col + 1, value=changes[field])
-        cell.number_format = "@"
-        cell.font = Font(name="Calibri", size=11)
+        _write_text_cell(sheet.cell(row=job.sheet_row, column=col + 1), changes[field])
     workbook.save(path)
     return job.model_copy(update=changes)
 
@@ -268,6 +266,16 @@ def _write_posting_text_header(sheet, column: int) -> None:
     cell.comment = Comment(gsheets.POSTING_TEXT_NOTE, "ApplyApp", width=280, height=80)
     for row in range(2, max(sheet.max_row or 1, 2) + 1):
         sheet.cell(row, column).number_format = "@"
+
+
+def _write_text_cell(cell, value: str) -> None:
+    """Store queue text as text. A leading = would otherwise become a formula."""
+    text = "" if value is None else str(value)
+    cell.value = text
+    if text[:1] in {"=", "+", "-", "@", "\t", "\r"}:
+        cell.data_type = "s"
+    cell.number_format = "@"
+    cell.font = Font(name="Calibri", size=11)
 
 
 def _cell_text(value: object) -> str:
