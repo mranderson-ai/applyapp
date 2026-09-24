@@ -111,7 +111,7 @@ Dear [Hiring Manager Name / Selection Committee],
 [Space: 12pt]
 Sincerely,
 [Space: 18pt - Signature Gap]
-William (Billy) Anderson
+Alex Rivera
 ================================================================================
 ```
 
