@@ -58,7 +58,6 @@ Files in the seed folder (Drive, or `LOCAL_SEED_DIR`, including subfolders) are 
 | `Resume & Cover Letter Optimization Paper` | Craft rules for ATS-friendly resumes and cover letters. Follow this; it is not a biography. Shipped in full with the app. |
 | `ApplyApp Document Design` | Visual system for the resume and cover letter. Applied in a format step before the file is written. Shipped in full with the app. |
 | Other resumes (PDF, Word, Google Docs) | Starting points only. Produce a stronger, posting-specific version, do not clone them. |
-| `Work Examples` | Optional proof of how the applicant works. Not a template. |
 
 The unoptimized accomplishments spreadsheet is ignored when the OPTIMIZED file is present. Google Docs, Word, Excel, Markdown, and PDFs are loaded.
 

@@ -40,7 +40,6 @@ from applyapp.seeds import (
     ROLE_FACTS,
     ROLE_PRIOR,
     ROLE_VOICE,
-    ROLE_WORK,
     SeedDoc,
     SeedLibrary,
     build_library,
@@ -395,12 +394,12 @@ def _format_seeds(state: JobState, roles: tuple[str, ...] | None = None) -> str:
 
 
 def _generation_prompt(state: JobState, kind: str) -> str:
-    """Cover letters get voice seeds; resumes get the ATS paper. Facts/prior/work are shared."""
+    """Cover letters get voice seeds; resumes get the ATS paper. Facts and prior resumes are shared."""
     job = _job(state)
     if kind == "cover letter":
-        roles = (ROLE_VOICE, ROLE_FACTS, ROLE_PRIOR, ROLE_WORK)
+        roles = (ROLE_VOICE, ROLE_FACTS, ROLE_PRIOR)
     else:
-        roles = (ROLE_ATS, ROLE_FACTS, ROLE_PRIOR, ROLE_WORK)
+        roles = (ROLE_ATS, ROLE_FACTS, ROLE_PRIOR)
     title = _posting_role(state)
     title_rule = ""
     if kind == "cover letter" and title:
