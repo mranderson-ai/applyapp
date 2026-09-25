@@ -35,7 +35,11 @@ applyapp = "applyapp.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-applyapp = ["examples/seeds/*"]
+applyapp = [
+  "examples/seeds/*",
+  "examples/Agent Project Docs/*",
+  "examples/Agent Project Docs/Job Roles/*",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

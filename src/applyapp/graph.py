@@ -1,7 +1,8 @@
 """LangGraph wiring for one job: what runs, in what order, and why.
 
-Fetch posting and load seeds start in parallel — they do not depend on each other
-and seeds are slow (Drive listing or a local folder walk, plus PDF/xlsx text).
+Fetch posting and load seeds start in parallel — they do not depend on each other.
+Loading reads the seed folder and Agent Project Docs (Drive listing or a local
+folder walk, plus PDF/xlsx text).
 Analyze waits for both. The model for each later step is chosen in llm.py.
 Resume is written before the cover letter so the letter can stay shorter and not
 re-derive the whole career. Critique may loop back to the writer a bounded number

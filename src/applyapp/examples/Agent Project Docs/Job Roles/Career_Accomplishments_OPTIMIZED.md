@@ -1,6 +1,6 @@
 # Career accomplishments (example)
 
-This file is fictional. Replace it with your own accomplishments workbook or markdown file. The filename must contain "accomplishment". Each section below is one role. These facts are the only employment history the example candidate has.
+This file is fictional. It lives in Agent Project Docs/Job Roles, not in the seed folder. Replace it with your own accomplishments workbook or markdown file. Keep it in a folder named Job Roles, or keep "accomplishment" in the filename. Each section below is one role. These facts are the only employment history the example candidate has.
 
 ## Solutions Engineer, Northwind Analytics — Jan 2022 – Mar 2025
 

@@ -1,10 +1,12 @@
-"""Where seed files are read and where finished documents are written.
+"""Where source files are read and where finished documents are written.
 
 `google` is Drive, the default: seed Docs and styled Google Docs out.
-`local` is a pair of folders: seeds from LOCAL_SEED_DIR, formatted .docx files
-into LOCAL_OUTPUT_DIR. The job queue is separate (`JOB_QUEUE`, Sheet or
-jobs.xlsx). Both stores return the same file dicts (`name`, `parents`, `text`)
-and URL strings the queue can store.
+`local` reads seeds from LOCAL_SEED_DIR and agent project docs from
+LOCAL_AGENT_DOCS_DIR, then writes formatted .docx files into LOCAL_OUTPUT_DIR.
+Seeds are the applicant's writings and prior resumes. Agent project docs are
+the optimization paper, the document design spec, and Job Roles. The job queue
+is separate (`JOB_QUEUE`, Sheet or jobs.xlsx). Both stores return the same
+file dicts (`name`, `parents`, `text`) and URL strings the queue can store.
 """
 
 import logging
@@ -24,6 +26,25 @@ def list_seed_documents(settings: Settings) -> list[dict]:
     if store == "local":
         return _local_seeds(settings)
     return gdrive.list_seed_documents(settings)
+
+
+def list_agent_documents(settings: Settings) -> list[dict]:
+    """Optimization paper, document design, and Job Roles. Empty when that folder is unset."""
+    store = _store(settings)
+    if store == "local":
+        raw = settings.local_agent_docs_dir.strip()
+        if not raw:
+            return []
+        return _local_files(Path(raw).expanduser().resolve(), "LOCAL_AGENT_DOCS_DIR")
+    folder = settings.google_agent_docs_folder_id.strip()
+    if not folder:
+        return []
+    return gdrive.list_folder_documents(settings, folder, "GOOGLE_AGENT_DOCS_FOLDER_ID")
+
+
+def list_context_documents(settings: Settings) -> list[dict]:
+    """Seeds plus agent project docs. The caller classifies each file."""
+    return list_seed_documents(settings) + list_agent_documents(settings)
 
 
 def create_output_folder(settings: Settings, name: str) -> tuple[str, str]:
@@ -63,14 +84,26 @@ def storage_checks(settings: Settings) -> list[tuple[str, bool, str]]:
         seed = settings.local_seed_dir.strip()
         output = settings.local_output_dir.strip()
         seed_ok = bool(seed) and Path(seed).expanduser().is_dir()
+        docs = settings.local_agent_docs_dir.strip()
+        docs_ok = True if not docs else Path(docs).expanduser().is_dir()
         return [
             ("DOCUMENT_STORE", True, "local"),
             ("LOCAL_SEED_DIR", seed_ok, seed or "missing"),
+            (
+                "LOCAL_AGENT_DOCS_DIR",
+                docs_ok,
+                docs or "using the copies shipped with ApplyApp",
+            ),
             ("LOCAL_OUTPUT_DIR", bool(output), output or "missing"),
         ]
     return [
         ("DOCUMENT_STORE", True, "google"),
         ("GOOGLE_SEED_FOLDER_ID", bool(settings.google_seed_folder_id), ""),
+        (
+            "GOOGLE_AGENT_DOCS_FOLDER_ID",
+            True,
+            settings.google_agent_docs_folder_id or "using the copies shipped with ApplyApp",
+        ),
         ("GOOGLE_OUTPUT_FOLDER_ID", bool(settings.google_output_folder_id), ""),
     ]
 
@@ -91,14 +124,20 @@ def _local_seeds(settings: Settings) -> list[dict]:
     root = Path(settings.local_seed_dir).expanduser().resolve()
     if not root.is_dir():
         raise RuntimeError(f"LOCAL_SEED_DIR is not a directory: {root}")
+    return _local_files(root, "LOCAL_SEED_DIR")
+
+
+def _local_files(root: Path, label: str) -> list[dict]:
+    if not root.is_dir():
+        raise RuntimeError(f"{label} is not a directory: {root}")
     loaded: list[dict] = []
     for path in sorted(item for item in root.rglob("*") if item.is_file() and not item.name.startswith(".")):
         resolved = path.resolve()
         if not resolved.is_relative_to(root):
-            logger.warning("Skipping %s because it is outside the seed folder", path.name)
+            logger.warning("Skipping %s because it is outside %s", path.name, label)
             continue
         if resolved.stat().st_size > gdrive.MAX_SEED_BYTES:
-            logger.warning("Skipping %s because it is larger than the seed limit", path.name)
+            logger.warning("Skipping %s because it is larger than the file limit", path.name)
             continue
         parents = list(path.relative_to(root).parent.parts)
         if parents == ["."]:

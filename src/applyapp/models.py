@@ -59,7 +59,7 @@ class TailoredDocument(BaseModel):
     grounded_claims: list[str] = Field(default_factory=list)
     omitted_requirements: list[str] = Field(
         default_factory=list,
-        description="Job requirements not supported by seed documents, left out on purpose.",
+        description="Job requirements not supported by Job Roles or prior resumes, left out on purpose.",
     )
 
 

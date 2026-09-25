@@ -68,9 +68,12 @@ class Settings(BaseSettings):
     local_jobs_path: str = ""
     google_seed_folder_id: str = ""
     google_output_folder_id: str = ""
+    # Agent project docs are not seeds: optimization paper, document design, and Job Roles.
+    google_agent_docs_folder_id: str = ""
     # `google` reads and writes Drive Docs. `local` reads LOCAL_SEED_DIR and writes formatted .docx files.
     document_store: str = "google"
     local_seed_dir: str = ""
+    local_agent_docs_dir: str = ""
     local_output_dir: str = ""
     google_credentials_path: Path = Field(default=PROJECT_ROOT / "credentials.json")
     google_token_path: Path = Field(default=PROJECT_ROOT / "token.json")
@@ -78,7 +81,7 @@ class Settings(BaseSettings):
     # Critique may send the writer back around this many times, then we format anyway.
     max_revisions: int = 2
     max_posting_chars: int = 50_000
-    # Seed budget is shared across facts, ATS paper, design spec, voice, and resumes.
+    # Shared budget for Job Roles, the optimization paper, the design spec, voice, and prior resumes.
     max_seed_chars: int = 150_000
 
 

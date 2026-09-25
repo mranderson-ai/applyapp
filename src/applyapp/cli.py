@@ -51,12 +51,12 @@ def main(argv: list[str] | None = None) -> int:
         help="Process only the first N pending rows (sheet order). Default: all.",
     )
     sub.add_parser("auth", help="Sign in to Google, when the queue or documents use it")
-    init = sub.add_parser("init", help="Create a local home with example seeds and an empty queue")
+    init = sub.add_parser("init", help="Create a local home with seeds, agent project docs, and an empty queue")
     init.add_argument(
         "--home",
         type=Path,
         default=Path.home() / "ApplyApp",
-        help="Folder for seeds, output, and jobs.xlsx. Default: ~/ApplyApp",
+        help="Folder for seeds, Agent Project Docs, output, and jobs.xlsx. Default: ~/ApplyApp",
     )
     init.add_argument(
         "--env-file",

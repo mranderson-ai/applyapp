@@ -1,8 +1,9 @@
 """ApplyApp: daily human-in-the-loop job-application agent.
 
 The queue is a Google Sheet or a local jobs.xlsx. Each pending row is a public
-posting URL. The LangGraph pipeline fetches that posting, loads seed documents
-from Drive or a local folder, and writes a truthful resume and cover letter.
+posting URL. The LangGraph pipeline fetches that posting, loads seeds and
+Agent Project Docs from Drive or local folders, and writes a truthful resume
+and cover letter.
 Analyze, resume, cover letter, format, and critique each use the model
 configured for that step (Claude, or any OpenAI-compatible API). Finished files
 are Google Docs or formatted .docx files for a human to proofread. Nothing is
