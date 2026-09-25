@@ -55,8 +55,13 @@ def _folder_id(value: str, label: str) -> str:
 
 def list_seed_documents(settings: Settings) -> list[dict[str, Any]]:
     """Every non-folder file under the seed folder, with extracted `text`."""
+    return list_folder_documents(settings, settings.google_seed_folder_id, "GOOGLE_SEED_FOLDER_ID")
+
+
+def list_folder_documents(settings: Settings, folder_value: str, label: str) -> list[dict[str, Any]]:
+    """Every non-folder file under one Drive folder, with extracted `text`."""
     drive = drive_service(settings)
-    folder_id = _folder_id(settings.google_seed_folder_id, "GOOGLE_SEED_FOLDER_ID")
+    folder_id = _folder_id(folder_value, label)
     files = _iter_files(drive, folder_id, parents=[])
     loaded: list[dict[str, Any]] = []
     for file in files:

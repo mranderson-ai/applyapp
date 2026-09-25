@@ -1,7 +1,13 @@
 from docx import Document
 
 from applyapp.config import Settings
-from applyapp.documents import create_output_folder, create_styled_doc, list_seed_documents, storage_errors
+from applyapp.documents import (
+    create_output_folder,
+    create_styled_doc,
+    list_context_documents,
+    list_seed_documents,
+    storage_errors,
+)
 
 
 def test_local_store_reads_seeds_and_writes_docx(tmp_path):
@@ -45,6 +51,32 @@ def test_local_store_reads_seeds_and_writes_docx(tmp_path):
     assert header.startswith("Solutions Engineer\t")
     assert "Jan 2022" in header
     assert "Shipped the thing" in document.paragraphs[3].text
+
+
+def test_local_store_reads_agent_project_docs_beside_seeds(tmp_path):
+    seeds = tmp_path / "seeds"
+    seeds.mkdir()
+    (seeds / "Human Writings.md").write_text("Voice.", encoding="utf-8")
+    docs = tmp_path / "Agent Project Docs"
+    (docs / "Job Roles").mkdir(parents=True)
+    (docs / "Job Roles" / "Career_Accomplishments_OPTIMIZED.md").write_text("One role.", encoding="utf-8")
+    (docs / "ApplyApp Document Design.md").write_text("Margins.", encoding="utf-8")
+    settings = Settings(
+        document_store="local",
+        local_seed_dir=str(seeds),
+        local_agent_docs_dir=str(docs),
+        local_output_dir=str(tmp_path / "out"),
+    )
+    files = list_context_documents(settings)
+    by_name = {file["name"]: file for file in files}
+    assert set(by_name) == {
+        "Human Writings.md",
+        "Career_Accomplishments_OPTIMIZED.md",
+        "ApplyApp Document Design.md",
+    }
+    assert by_name["Career_Accomplishments_OPTIMIZED.md"]["parents"] == ["Job Roles"]
+    assert by_name["Human Writings.md"]["parents"] == []
+    assert storage_errors(settings) == []
 
 
 def test_google_store_still_requires_drive_folders():

@@ -1,9 +1,10 @@
-"""Classify seed files and pack them into the model context budget.
+"""Classify source files and pack them into the model context budget.
 
-The files may come from Drive or from LOCAL_SEED_DIR. Filename and folder rules
-decide each file's *role* (facts vs voice vs ATS vs design vs prior resume). The
-OPTIMIZED accomplishments workbook wins over the unoptimized twin. Prior resumes
-are capped so they cannot crowd out the fact dataset.
+Seeds (LOCAL_SEED_DIR) are the applicant's own material: voice and prior resumes.
+Agent project docs are not seeds. They are the optimization paper, the document
+design spec, and Job Roles (the accomplishments dataset). Filename and folder
+rules decide each file's role. The OPTIMIZED accomplishments workbook wins over
+the unoptimized twin. Prior resumes are capped so they cannot crowd out Job Roles.
 `PURPOSE` is injected into the prompt so the model does not treat Human Writings
 as a biography or the design spec as keywords.
 """
@@ -27,10 +28,10 @@ PURPOSE = {
         "or a prior resume."
     ),
     ROLE_FACTS: (
-        "CANONICAL FACTS. AI-optimized accomplishments for historical roles. "
-        "Each spreadsheet tab is a role. This is the primary truth source for "
-        "employers, titles, dates, metrics, tools, and outcomes. Prefer this "
-        "dataset over prior resumes when they conflict."
+        "CANONICAL FACTS. Job Roles: AI-optimized accomplishments for historical roles. "
+        "Each spreadsheet tab or markdown section is one role. This is the primary "
+        "truth source for employers, titles, dates, metrics, tools, and outcomes. "
+        "Prefer this dataset over prior resumes when they conflict."
     ),
     ROLE_ATS: (
         "MANDATORY CRAFT RULES. Thought leadership on writing resumes that survive "
@@ -89,6 +90,8 @@ def classify(name: str, parents: list[str]) -> str:
         return ROLE_FACTS
     if "accomplishment" in n:
         return ROLE_FACTS_LEGACY
+    if "job role" in folder:
+        return ROLE_FACTS if "optimized" in n else ROLE_FACTS_LEGACY
     if "resume" in n:
         return ROLE_PRIOR
     if folder.startswith("accomplishments") and not n.endswith(".xlsx"):
