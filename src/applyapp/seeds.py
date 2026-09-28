@@ -1,10 +1,11 @@
 """Classify source files and pack them into the model context budget.
 
-Seeds (LOCAL_SEED_DIR) are the applicant's own material: accomplishments, voice,
-and prior resumes. Agent project docs are not seeds. They are the optimization
-paper and the document design spec. Filename and folder rules decide each file's
-role. The OPTIMIZED accomplishments workbook wins over the unoptimized twin.
-Prior resumes are capped so they cannot crowd out the fact dataset.
+Seeds (LOCAL_SEED_DIR) are the applicant's own material: accomplishments, Human
+Writings, and example resumes and cover letters. Agent project docs are the
+optimization paper, the document design spec, and Job Roles (the job postings
+queue). Filename and folder rules decide each file's role. The OPTIMIZED
+accomplishments workbook wins over the unoptimized twin. Example resumes and
+cover letters are capped so they cannot crowd out the fact dataset.
 `PURPOSE` is injected into the prompt so the model does not treat Human Writings
 as a biography or the design spec as keywords.
 """
@@ -43,10 +44,10 @@ PURPOSE = {
         "Used in the format step before the Doc or .docx is written. Not a source of career facts."
     ),
     ROLE_PRIOR: (
-        "STARTING POINT ONLY. Resumes the applicant has actually used. Do not copy "
-        "them. Produce a stronger, posting-specific version: keep true facts, "
-        "improve targeting, ATS structure, and impact. Contact info and education "
-        "may be taken from these if missing elsewhere."
+        "STARTING POINT ONLY. Example resumes and cover letters the applicant has "
+        "actually used. Do not copy them. Produce a stronger, posting-specific "
+        "version: keep true facts, improve targeting, ATS structure, and impact. "
+        "Contact info and education may be taken from these if missing elsewhere."
     ),
 }
 
@@ -90,7 +91,7 @@ def classify(name: str, parents: list[str]) -> str:
         return ROLE_FACTS
     if "accomplishment" in n:
         return ROLE_FACTS_LEGACY
-    if "resume" in n:
+    if "resume" in n or "cover letter" in n or "coverletter" in n:
         return ROLE_PRIOR
     if folder.startswith("accomplishments") and not n.endswith(".xlsx"):
         return ROLE_PRIOR

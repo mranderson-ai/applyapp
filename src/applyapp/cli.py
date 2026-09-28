@@ -56,7 +56,7 @@ def main(argv: list[str] | None = None) -> int:
         "--home",
         type=Path,
         default=Path.home() / "ApplyApp",
-        help="Folder for seeds, Agent Project Docs, output, and jobs.xlsx. Default: ~/ApplyApp",
+        help="Folder for seeds, Agent Project Docs (including Job Roles), and output. Default: ~/ApplyApp",
     )
     init.add_argument(
         "--env-file",

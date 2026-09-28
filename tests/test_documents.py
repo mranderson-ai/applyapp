@@ -61,6 +61,8 @@ def test_local_store_reads_agent_project_docs_beside_seeds(tmp_path):
     docs = tmp_path / "Agent Project Docs"
     docs.mkdir()
     (docs / "ApplyApp Document Design.md").write_text("Margins.", encoding="utf-8")
+    (docs / "Job Roles").mkdir()
+    (docs / "Job Roles" / "jobs.xlsx").write_bytes(b"not a real workbook")
     settings = Settings(
         document_store="local",
         local_seed_dir=str(seeds),

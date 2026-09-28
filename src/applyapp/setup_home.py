@@ -22,9 +22,10 @@ def init_home(home: Path, env_file: Path | None = None) -> list[str]:
     seed_dir = home / "seeds"
     docs_dir = home / "Agent Project Docs"
     output_dir = home / "output"
-    jobs_path = home / "jobs.xlsx"
+    jobs_path = docs_dir / "Job Roles" / "jobs.xlsx"
     seed_dir.mkdir(parents=True, exist_ok=True)
     docs_dir.mkdir(parents=True, exist_ok=True)
+    jobs_path.parent.mkdir(parents=True, exist_ok=True)
     output_dir.mkdir(parents=True, exist_ok=True)
     copied = _copy_examples(seed_dir)
     docs_copied = _copy_project_docs(docs_dir)
@@ -37,7 +38,7 @@ def init_home(home: Path, env_file: Path | None = None) -> list[str]:
         f"Seeds:  {seed_dir} ({copied} example file(s) copied)",
         f"Agent Project Docs: {docs_dir} ({docs_copied} file(s) copied)",
         f"Output: {output_dir}",
-        f"Queue:  {jobs_path}",
+        f"Job Roles: {jobs_path}",
         env_note,
         "Paste a public job URL in column A of the queue and leave Status blank.",
         "Each row makes several model calls. Check the provider's price before a long run.",
@@ -161,7 +162,8 @@ def _interview_local(env_path: Path, input_func, home: Path) -> list[str]:
     docs_default = str(home / "Agent Project Docs")
     docs_dir = Path(_ask(input_func, f"Agent project docs folder [{docs_default}]: ", docs_default)).expanduser()
     output_dir = Path(_ask(input_func, f"Output folder [{home / 'output'}]: ", str(home / "output"))).expanduser()
-    jobs_path = Path(_ask(input_func, f"Job spreadsheet [{home / 'jobs.xlsx'}]: ", str(home / "jobs.xlsx"))).expanduser()
+    jobs_default = str(docs_dir / "Job Roles" / "jobs.xlsx")
+    jobs_path = Path(_ask(input_func, f"Job Roles spreadsheet [{jobs_default}]: ", jobs_default)).expanduser()
     copy_examples = _ask_yes(
         input_func,
         "Copy the starter seeds into that folder? [Y/n]: ",
@@ -183,7 +185,7 @@ def _interview_local(env_path: Path, input_func, home: Path) -> list[str]:
         f"Seeds:  {seed_dir} ({copied} example file(s) copied)",
         f"Agent Project Docs: {docs_dir} ({docs_copied} file(s) copied)",
         f"Output: {output_dir}",
-        f"Queue:  {jobs_path}",
+        f"Job Roles: {jobs_path}",
         f"Env:    wrote {env_path}",
         "Paste a public job URL in column A and leave Status blank, then run again.",
     ]

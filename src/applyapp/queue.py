@@ -1,7 +1,8 @@
 """Job queue: a Google Sheet, or a local Excel workbook with the same columns.
 
 `JOB_QUEUE=google` is the default. `JOB_QUEUE=local` reads and writes
-`LOCAL_JOBS_PATH` (default `jobs.xlsx` in the project root). Header names match
+`LOCAL_JOBS_PATH` (default `jobs.xlsx` in the project root when unset). A new home
+puts that workbook in `Agent Project Docs/Job Roles`. Header names match
 the Sheet, so pending / processing / ready_for_review rules stay in one place.
 The workbook is created with a header row, frozen panes, and a filter the first
 time it is missing. Cells stay text so Excel does not rewrite URLs.

@@ -9,7 +9,7 @@ V1 does not auto-submit applications and does not have a web UI.
 ## How the pieces connect
 
 ```
-Job queue (Sheet or jobs.xlsx)
+Job Roles (Sheet or Agent Project Docs/Job Roles/jobs.xlsx)
         │
         ▼
   ingest pending rows
@@ -32,8 +32,8 @@ Job queue (Sheet or jobs.xlsx)
 | Piece | Role |
 | --- | --- |
 | Job queue | You add links; ApplyApp writes status. Google Sheet, or a local `.xlsx`. |
-| Seed documents | Accomplishments, writing samples, and prior resumes. The applicant's own material. |
-| Agent Project Docs | Optimization paper and document design. Not seeds. |
+| Agent Seeds | Accomplishments, Human Writings, and example resumes and cover letters. |
+| Agent Project Docs | Document design, Job Roles (the job postings), and the optimization paper. |
 | LangGraph | Fixed pipeline, not a free-form chat agent. |
 | Models | Analyze, resume, cover letter, format, and critique. Each step can use Claude or an OpenAI-compatible API. |
 | Output folder | HITL proofread + submit. Google Docs, or formatted Word files in a local folder. |
@@ -50,20 +50,21 @@ You only have to fill Job Postings with a URL when the page can be read. Company
 
 ## Seeds and Agent Project Docs
 
-Seeds are the applicant's own material: the career facts, how you write, and resumes you have already used. The optimization paper and the document design spec are not seeds. They are the agent's project docs: how to write, and how to format.
+Agent Seeds are the applicant's own material. Agent Project Docs are how the agent works, plus the roles it is writing for.
 
-| Seed (`LOCAL_SEED_DIR`, or the Drive seed folder) | How the agent uses it |
+| Agent Seeds (`LOCAL_SEED_DIR`, or the Drive seed folder) | How the agent uses it |
 | --- | --- |
-| A file whose name contains `accomplishment` | Canonical career facts. A spreadsheet tab, or a markdown section, is one role. |
-| `Human Writings` | Voice and tone for cover letters (emails, outreach, letters). Not a fact source. |
-| Other resumes (PDF, Word, Google Docs) | Starting points only. Produce a stronger, posting-specific version, do not clone them. |
+| Accomplishments. A file whose name contains `accomplishment` | Canonical career facts. A spreadsheet tab, or a markdown section, is one role. |
+| Human Writings | Voice and tone (emails and outreach). Not a fact source. |
+| Example resumes and cover letters | Starting points only. A file whose name contains `resume` or `cover letter`, plus other PDF and Word files. Produce a stronger, posting-specific version. Do not clone them. |
 
 | Agent Project Docs | How the agent uses it |
 | --- | --- |
-| `Resume & Cover Letter Optimization Paper` | Craft rules for ATS-friendly resumes and cover letters. Follow this; it is not a biography. Shipped in full with the app. |
 | `ApplyApp Document Design` | Visual system for the resume and cover letter. Applied in a format step before the file is written. Shipped in full with the app. |
+| Job Roles | The job postings. Locally this is `Agent Project Docs/Job Roles/jobs.xlsx`. On Google it is the Sheet. Each row is fetched and written on its own. It is not packed into the prompt as a seed. |
+| `Resume & Cover Letter Optimization Paper` | Craft rules for ATS-friendly resumes and cover letters. Follow this; it is not a biography. Shipped in full with the app. |
 
-The unoptimized accomplishments spreadsheet is ignored when the OPTIMIZED file is present. Google Docs, Word, Excel, Markdown, and PDFs are loaded. If the Agent Project Docs folder is missing, a run still uses the optimization paper and design spec shipped with the app.
+The unoptimized accomplishments spreadsheet is ignored when the OPTIMIZED file is present. Google Docs, Word, Excel, Markdown, and PDFs are loaded from the seed folder. If the Agent Project Docs folder is missing the two papers, a run still uses the copies shipped with the app.
 
 ## Where a newcomer should start
 
@@ -71,9 +72,9 @@ Google is optional. A local folder, a local spreadsheet, and one model key are e
 
 1. Install this project (`pip install -e ".[dev]"` from a checkout).
 2. Run `python -m applyapp run`. The first time, it asks where seeds live, where Agent Project Docs live, where finished files go, where the job spreadsheet is, and which model should write and critique. Press Enter to take the suggested local folders and Claude. `python -m applyapp init` writes those same defaults without asking. An existing `.env` is left alone, including a scheduled 7am run.
-3. Replace the fictional personal seeds with your own files: the accomplishments workbook, Human Writings, and any prior resumes. Keep `accomplishment` and `human writings` in those filenames so each file is classified. Other PDF and Word files in the seed folder are treated as prior resumes. Leave `Resume & Cover Letter Optimization Paper` and `ApplyApp Document Design` in Agent Project Docs. Those two are the app's craft and visual specs, not a sample career. If you edit them, keep `optimization paper` and `document design` in the filenames.
+3. Replace the fictional seeds with your own files: accomplishments, Human Writings, and example resumes and cover letters. Keep `accomplishment` and `human writings` in those filenames. Keep `resume` or `cover letter` in the example filenames. Other PDF and Word files in the seed folder are treated as examples too. Leave `Resume & Cover Letter Optimization Paper` and `ApplyApp Document Design` in Agent Project Docs. Those two are the app's craft and visual specs, not a sample career. If you edit them, keep `optimization paper` and `document design` in the filenames. Add postings in `Agent Project Docs/Job Roles/jobs.xlsx`.
 4. Put your model key in `.env`. See Models below. A run makes several calls per job, so check the provider's price first.
-5. Paste one public job URL into column A of `jobs.xlsx` and leave Status blank.
+5. Paste one public job URL into column A of `Agent Project Docs/Job Roles/jobs.xlsx` and leave Status blank.
 6. Run `python -m applyapp doctor`, then `python -m applyapp run --limit 1`.
 7. Proofread the Word files in `~/ApplyApp/output` before you submit anything.
 
@@ -100,7 +101,7 @@ cp .env.example .env
 3. Configure an OAuth consent screen (your own Google account as a test user).
 4. Create an OAuth client of type **Desktop app**, download JSON, save it as `credentials.json` in this folder.
 5. Create a Sheet for the job queue and Drive folders for seeds, Agent Project Docs, and output, unless those are local. Paste their URLs or IDs into `.env`. Leave the Agent Project Docs folder blank to use the papers shipped with the app.
-6. Put accomplishments, writing samples, and prior resumes in the seed folder. Put the optimization paper and the design spec in Agent Project Docs.
+6. Put accomplishments, Human Writings, and example resumes and cover letters in the seed folder. Put the optimization paper and the design spec in Agent Project Docs. The Sheet is the Job Roles queue.
 7. On the OAuth **Audience** screen, add your Google account as a test user. For unattended 7am runs, publish the app (or accept re-auth every 7 days while it stays in Testing).
 
 ```bash
@@ -122,7 +123,7 @@ That installs a macOS LaunchAgent. Logs go to `logs/daily.log`. Cloud Scheduler 
 
 `DOCUMENT_STORE=google` reads the Drive seed folder and the Agent Project Docs folder, and writes Google Docs. `DOCUMENT_STORE=local` reads `LOCAL_SEED_DIR` and `LOCAL_AGENT_DOCS_DIR`, and writes formatted `.docx` files into `LOCAL_OUTPUT_DIR` (Calibri, navy, 0.75 in margins, the same block styles as the Docs). File names and folder layout still decide each file's role.
 
-`JOB_QUEUE=google` is the Sheet. `JOB_QUEUE=local` is an Excel workbook (`LOCAL_JOBS_PATH`, default `jobs.xlsx`) with the same columns: Job Postings, Company, Role, Posting Text, Organization, Level, Resume, Cover Letter, Status, Error, Output, Processed. The header row is frozen and Status is a dropdown. Put a URL in Job Postings and leave Status blank. When a page cannot be read, paste the description into Posting Text and fill Company and Role. `jobs.xlsx` stays out of git. Google sign-in is skipped only when both the queue and the document store are local.
+`JOB_QUEUE=google` is the Sheet, which is the Job Roles queue. `JOB_QUEUE=local` is `Agent Project Docs/Job Roles/jobs.xlsx` (`LOCAL_JOBS_PATH`) with the same columns: Job Postings, Company, Role, Posting Text, Organization, Level, Resume, Cover Letter, Status, Error, Output, Processed. The header row is frozen and Status is a dropdown. Put a URL in Job Postings and leave Status blank. When a page cannot be read, paste the description into Posting Text and fill Company and Role. `jobs.xlsx` stays out of git. Google sign-in is skipped only when both the queue and the document store are local.
 
 ## Models
 

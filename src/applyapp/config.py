@@ -63,7 +63,7 @@ class Settings(BaseSettings):
     critique_base_url: str = ""
 
     google_sheet_id: str = ""
-    # `google` is the Sheet. `local` is jobs.xlsx with the same headers.
+    # `google` is the Sheet. `local` is Agent Project Docs/Job Roles/jobs.xlsx with the same headers.
     job_queue: str = "google"
     local_jobs_path: str = ""
     google_seed_folder_id: str = ""

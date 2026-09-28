@@ -1,6 +1,6 @@
 # Human writings (example)
 
-Voice sample for the fictional candidate Alex Rivera. Replace this with your own emails, outreach, and cover letters. The filename must contain "human writings". Do not put employers here that are not also in the accomplishments file.
+Voice sample for the fictional candidate Alex Rivera. Replace this with your own emails and outreach. Example resumes and cover letters are separate seed files. The filename must contain "human writings". Do not put employers here that are not also in the accomplishments file.
 
 ---
 

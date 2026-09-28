@@ -3,10 +3,11 @@
 `google` is Drive, the default: seed Docs and styled Google Docs out.
 `local` reads seeds from LOCAL_SEED_DIR and agent project docs from
 LOCAL_AGENT_DOCS_DIR, then writes formatted .docx files into LOCAL_OUTPUT_DIR.
-Seeds are the applicant's accomplishments, writings, and prior resumes. Agent
-project docs are the optimization paper and the document design spec. The job queue
-is separate (`JOB_QUEUE`, Sheet or jobs.xlsx). Both stores return the same
-file dicts (`name`, `parents`, `text`) and URL strings the queue can store.
+Seeds are the applicant's accomplishments, Human Writings, and example resumes
+and cover letters. Agent project docs are the optimization paper and the document
+design spec. Job Roles, the job-posting queue, also lives there and is read as
+the queue rather than as prompt text. Both stores return the same file dicts
+(`name`, `parents`, `text`) and URL strings the queue can store.
 """
 
 import logging
@@ -29,17 +30,25 @@ def list_seed_documents(settings: Settings) -> list[dict]:
 
 
 def list_agent_documents(settings: Settings) -> list[dict]:
-    """Optimization paper and document design. Empty when that folder is unset."""
+    """Optimization paper and document design. The Job Roles queue is not loaded as text."""
     store = _store(settings)
     if store == "local":
         raw = settings.local_agent_docs_dir.strip()
         if not raw:
             return []
-        return _local_files(Path(raw).expanduser().resolve(), "LOCAL_AGENT_DOCS_DIR")
-    folder = settings.google_agent_docs_folder_id.strip()
-    if not folder:
-        return []
-    return gdrive.list_folder_documents(settings, folder, "GOOGLE_AGENT_DOCS_FOLDER_ID")
+        files = _local_files(Path(raw).expanduser().resolve(), "LOCAL_AGENT_DOCS_DIR", skip_queue=True)
+    else:
+        folder = settings.google_agent_docs_folder_id.strip()
+        if not folder:
+            return []
+        files = gdrive.list_folder_documents(settings, folder, "GOOGLE_AGENT_DOCS_FOLDER_ID")
+    return [file for file in files if not _is_job_roles_queue(file.get("name", ""), file.get("parents") or [])]
+
+
+def _is_job_roles_queue(name: str, parents: list[str]) -> bool:
+    """Job postings are processed from the queue, not packed into the writing prompt."""
+    label = " / ".join([*parents, name]).lower()
+    return "job role" in label or name.lower() == "jobs.xlsx"
 
 
 def list_context_documents(settings: Settings) -> list[dict]:
@@ -127,7 +136,7 @@ def _local_seeds(settings: Settings) -> list[dict]:
     return _local_files(root, "LOCAL_SEED_DIR")
 
 
-def _local_files(root: Path, label: str) -> list[dict]:
+def _local_files(root: Path, label: str, skip_queue: bool = False) -> list[dict]:
     if not root.is_dir():
         raise RuntimeError(f"{label} is not a directory: {root}")
     loaded: list[dict] = []
@@ -136,12 +145,14 @@ def _local_files(root: Path, label: str) -> list[dict]:
         if not resolved.is_relative_to(root):
             logger.warning("Skipping %s because it is outside %s", path.name, label)
             continue
-        if resolved.stat().st_size > gdrive.MAX_SEED_BYTES:
-            logger.warning("Skipping %s because it is larger than the file limit", path.name)
-            continue
         parents = list(path.relative_to(root).parent.parts)
         if parents == ["."]:
             parents = []
+        if skip_queue and _is_job_roles_queue(path.name, parents):
+            continue
+        if resolved.stat().st_size > gdrive.MAX_SEED_BYTES:
+            logger.warning("Skipping %s because it is larger than the file limit", path.name)
+            continue
         loaded.append(
             {
                 "name": path.name,
