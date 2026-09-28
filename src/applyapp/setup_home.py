@@ -1,9 +1,8 @@
 """Create a local ApplyApp home: seeds, agent project docs, an empty queue, and a `.env`.
 
-Used by `applyapp init`. Paths point at folders the user owns. Example seeds and
-the sample Job Roles file are fictional. The optimization paper and the design
-spec ship with the app. An existing `.env` is left alone so a working install
-is not overwritten.
+Used by `applyapp init`. Paths point at folders the user owns. Example seeds are
+fictional. The optimization paper and the design spec ship with the app. An
+existing `.env` is left alone so a working install is not overwritten.
 """
 
 import sys
@@ -15,7 +14,6 @@ from applyapp.seeds import ROLE_ATS, ROLE_DESIGN, classify
 
 EXAMPLE_SEEDS = Path(__file__).resolve().parent / "examples" / "seeds"
 AGENT_PROJECT_DOCS = Path(__file__).resolve().parent / "examples" / "Agent Project Docs"
-_SAMPLE_JOB_ROLES = "Career_Accomplishments_OPTIMIZED.md"
 
 
 def init_home(home: Path, env_file: Path | None = None) -> list[str]:
@@ -29,7 +27,7 @@ def init_home(home: Path, env_file: Path | None = None) -> list[str]:
     docs_dir.mkdir(parents=True, exist_ok=True)
     output_dir.mkdir(parents=True, exist_ok=True)
     copied = _copy_examples(seed_dir)
-    docs_copied = _copy_project_docs(docs_dir, include_sample_roles=True)
+    docs_copied = _copy_project_docs(docs_dir)
     if not jobs_path.exists():
         _create_workbook(jobs_path)
 
@@ -52,8 +50,7 @@ def with_bundled_guidance(files: list[dict]) -> list[dict]:
     """Add the shipped optimization paper and design spec when the run lacks them.
 
     Those two documents are agent project docs, not a person's career. A copy
-    already loaded, including one the person edited, is left alone. Job Roles
-    are not filled in from the package; that file is the applicant's own facts.
+    already loaded, including one the person edited, is left alone.
     """
     present = {classify(file["name"], file.get("parents") or []) for file in files}
     extra: list[dict] = []
@@ -80,11 +77,10 @@ def _copy_examples(seed_dir: Path) -> int:
     return _copy_tree(EXAMPLE_SEEDS, seed_dir)
 
 
-def _copy_project_docs(docs_dir: Path, include_sample_roles: bool) -> int:
+def _copy_project_docs(docs_dir: Path) -> int:
     if not AGENT_PROJECT_DOCS.is_dir():
         raise RuntimeError(f"Agent project docs are missing at {AGENT_PROJECT_DOCS}")
-    skip = set() if include_sample_roles else {_SAMPLE_JOB_ROLES}
-    return _copy_tree(AGENT_PROJECT_DOCS, docs_dir, skip)
+    return _copy_tree(AGENT_PROJECT_DOCS, docs_dir)
 
 
 def _copy_tree(source_root: Path, dest_root: Path, skip_names: set[str] | None = None) -> int:
@@ -168,7 +164,7 @@ def _interview_local(env_path: Path, input_func, home: Path) -> list[str]:
     jobs_path = Path(_ask(input_func, f"Job spreadsheet [{home / 'jobs.xlsx'}]: ", str(home / "jobs.xlsx"))).expanduser()
     copy_examples = _ask_yes(
         input_func,
-        "Copy the starter seeds and sample Job Roles into those folders? [Y/n]: ",
+        "Copy the starter seeds into that folder? [Y/n]: ",
         default=True,
     )
     model, base_url, api_key, critic = _ask_models(input_func)
@@ -176,7 +172,7 @@ def _interview_local(env_path: Path, input_func, home: Path) -> list[str]:
     docs_dir.mkdir(parents=True, exist_ok=True)
     output_dir.mkdir(parents=True, exist_ok=True)
     copied = _copy_examples(seed_dir) if copy_examples else 0
-    docs_copied = _copy_project_docs(docs_dir, include_sample_roles=copy_examples)
+    docs_copied = _copy_project_docs(docs_dir)
     if not jobs_path.exists():
         _create_workbook(jobs_path)
     _write_env_lines(

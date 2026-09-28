@@ -38,7 +38,6 @@ where = ["src"]
 applyapp = [
   "examples/seeds/*",
   "examples/Agent Project Docs/*",
-  "examples/Agent Project Docs/Job Roles/*",
 ]
 
 [tool.pytest.ini_options]

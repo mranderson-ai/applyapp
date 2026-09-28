@@ -3,8 +3,8 @@
 `google` is Drive, the default: seed Docs and styled Google Docs out.
 `local` reads seeds from LOCAL_SEED_DIR and agent project docs from
 LOCAL_AGENT_DOCS_DIR, then writes formatted .docx files into LOCAL_OUTPUT_DIR.
-Seeds are the applicant's writings and prior resumes. Agent project docs are
-the optimization paper, the document design spec, and Job Roles. The job queue
+Seeds are the applicant's accomplishments, writings, and prior resumes. Agent
+project docs are the optimization paper and the document design spec. The job queue
 is separate (`JOB_QUEUE`, Sheet or jobs.xlsx). Both stores return the same
 file dicts (`name`, `parents`, `text`) and URL strings the queue can store.
 """
@@ -29,7 +29,7 @@ def list_seed_documents(settings: Settings) -> list[dict]:
 
 
 def list_agent_documents(settings: Settings) -> list[dict]:
-    """Optimization paper, document design, and Job Roles. Empty when that folder is unset."""
+    """Optimization paper and document design. Empty when that folder is unset."""
     store = _store(settings)
     if store == "local":
         raw = settings.local_agent_docs_dir.strip()

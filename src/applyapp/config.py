@@ -68,7 +68,7 @@ class Settings(BaseSettings):
     local_jobs_path: str = ""
     google_seed_folder_id: str = ""
     google_output_folder_id: str = ""
-    # Agent project docs are not seeds: optimization paper, document design, and Job Roles.
+    # Agent project docs are not seeds: the optimization paper and the document design spec.
     google_agent_docs_folder_id: str = ""
     # `google` reads and writes Drive Docs. `local` reads LOCAL_SEED_DIR and writes formatted .docx files.
     document_store: str = "google"
@@ -81,7 +81,7 @@ class Settings(BaseSettings):
     # Critique may send the writer back around this many times, then we format anyway.
     max_revisions: int = 2
     max_posting_chars: int = 50_000
-    # Shared budget for Job Roles, the optimization paper, the design spec, voice, and prior resumes.
+    # Shared budget for accomplishments, the optimization paper, the design spec, voice, and prior resumes.
     max_seed_chars: int = 150_000
 
 

@@ -57,9 +57,9 @@ def test_local_store_reads_agent_project_docs_beside_seeds(tmp_path):
     seeds = tmp_path / "seeds"
     seeds.mkdir()
     (seeds / "Human Writings.md").write_text("Voice.", encoding="utf-8")
+    (seeds / "Career_Accomplishments_OPTIMIZED.md").write_text("One role.", encoding="utf-8")
     docs = tmp_path / "Agent Project Docs"
-    (docs / "Job Roles").mkdir(parents=True)
-    (docs / "Job Roles" / "Career_Accomplishments_OPTIMIZED.md").write_text("One role.", encoding="utf-8")
+    docs.mkdir()
     (docs / "ApplyApp Document Design.md").write_text("Margins.", encoding="utf-8")
     settings = Settings(
         document_store="local",
@@ -74,7 +74,7 @@ def test_local_store_reads_agent_project_docs_beside_seeds(tmp_path):
         "Career_Accomplishments_OPTIMIZED.md",
         "ApplyApp Document Design.md",
     }
-    assert by_name["Career_Accomplishments_OPTIMIZED.md"]["parents"] == ["Job Roles"]
+    assert by_name["Career_Accomplishments_OPTIMIZED.md"]["parents"] == []
     assert by_name["Human Writings.md"]["parents"] == []
     assert storage_errors(settings) == []
 

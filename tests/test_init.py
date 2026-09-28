@@ -17,11 +17,11 @@ def test_init_creates_a_local_home_without_touching_an_existing_env(tmp_path):
     assert (tmp_path / "home" / "jobs.xlsx").is_file()
     assert (tmp_path / "home" / "output").is_dir()
     assert (tmp_path / "home" / "seeds" / "Human Writings.md").is_file()
-    assert not (tmp_path / "home" / "seeds" / "Career_Accomplishments_OPTIMIZED.md").exists()
+    assert (tmp_path / "home" / "seeds" / "Career_Accomplishments_OPTIMIZED.md").is_file()
     docs = tmp_path / "home" / "Agent Project Docs"
     assert (docs / "ApplyApp Document Design.md").is_file()
     assert (docs / "Resume & Cover Letter Optimization Paper.md").is_file()
-    assert (docs / "Job Roles" / "Career_Accomplishments_OPTIMIZED.md").is_file()
+    assert not (docs / "Job Roles").exists()
     assert "keep-me" in existing.read_text(encoding="utf-8")
     assert any("left existing file" in line for line in notes)
 
@@ -35,14 +35,14 @@ def test_init_writes_env_when_missing_and_example_names_classify(tmp_path):
     assert "ANTHROPIC_API_KEY=" in text
     assert (env_file.stat().st_mode & 0o777) == 0o600
     seed_roles = {classify(path.name, []) for path in EXAMPLE_SEEDS.iterdir() if path.is_file()}
-    assert {"human_writings", "prior_resume"} <= seed_roles
-    assert "accomplishments" not in seed_roles
+    assert {"accomplishments", "human_writings", "prior_resume"} <= seed_roles
     doc_roles = {
         classify(path.name, list(path.relative_to(AGENT_PROJECT_DOCS).parent.parts))
         for path in AGENT_PROJECT_DOCS.rglob("*")
         if path.is_file()
     }
-    assert {"accomplishments", "ats_guidance", "document_design"} <= doc_roles
+    assert {"ats_guidance", "document_design"} <= doc_roles
+    assert "accomplishments" not in doc_roles
 
 
 def test_first_run_asks_for_folders_and_models(tmp_path):
@@ -68,7 +68,7 @@ def test_first_run_asks_for_folders_and_models(tmp_path):
     assert "ANTHROPIC_API_KEY=sk-ant-example" in text
     assert "CRITIQUE_MODEL=llama3.1" in text
     assert (tmp_path / "home" / "seeds" / "Human Writings.md").is_file()
-    assert (tmp_path / "home" / "Agent Project Docs" / "Job Roles" / "Career_Accomplishments_OPTIMIZED.md").is_file()
+    assert (tmp_path / "home" / "seeds" / "Career_Accomplishments_OPTIMIZED.md").is_file()
     assert any("Queue:" in line for line in notes)
     assert needs_interview(env_file) is False
 
@@ -95,8 +95,7 @@ def test_shipped_guidance_papers_are_the_full_originals():
     assert "Example pointer" not in design
     assert classify("Resume & Cover Letter Optimization Paper.md", []) == "ats_guidance"
     assert classify("ApplyApp Document Design.md", []) == "document_design"
-    assert classify("Career_Accomplishments_OPTIMIZED.md", ["Job Roles"]) == "accomplishments"
-    assert classify("Roles.xlsx", ["Job Roles"]) == "accomplishments_legacy"
+    assert classify("Career_Accomplishments_OPTIMIZED.md", []) == "accomplishments"
 
 
 def test_missing_guidance_papers_fall_back_to_the_shipped_originals():
