@@ -6,7 +6,10 @@ project stays in Testing, Google expires that refresh token after ~7 days —
 publish the consent screen for unattended 7am runs.
 
 `token_health` is for `applyapp doctor`: inspect/refresh without opening a browser.
-`credentials()` will open a browser if there is no usable token (first run only).
+`credentials()` opens a browser when there is no usable token. The auth command
+passes `interactive=True`, so a refresh Google rejects falls through to that
+browser sign-in and a new token is saved. The 7:00 run leaves `interactive`
+false: a rejected refresh still raises, and no browser opens.
 """
 
 import re
@@ -14,6 +17,7 @@ import subprocess
 import webbrowser
 from pathlib import Path
 
+from google.auth.exceptions import RefreshError
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -82,7 +86,13 @@ def token_health(settings: Settings) -> tuple[str, str]:
     return "needs_auth", "Google token is missing a refresh token. Run `python -m applyapp auth`."
 
 
-def credentials(settings: Settings) -> Credentials:
+def credentials(settings: Settings, *, interactive: bool = False) -> Credentials:
+    """Load or refresh the saved token.
+
+    `interactive` is `python -m applyapp auth`. A refresh Google rejects then
+    continues into browser sign-in. The unattended run keeps the default, so
+    that rejection still raises and `_run_local_auth` is not called.
+    """
     creds_path = Path(settings.google_credentials_path)
     token_path = Path(settings.google_token_path)
     tighten_private_file(creds_path)
@@ -93,9 +103,15 @@ def credentials(settings: Settings) -> Credentials:
     if creds and creds.valid:
         return creds
     if creds and creds.expired and creds.refresh_token:
-        creds.refresh(Request())
-        write_private_text(token_path, creds.to_json())
-        return creds
+        try:
+            creds.refresh(Request())
+        except RefreshError:
+            if not interactive:
+                raise
+            creds = None
+        else:
+            write_private_text(token_path, creds.to_json())
+            return creds
     if not creds_path.exists():
         raise RuntimeError(
             f"Missing Google OAuth client file at {creds_path}. "

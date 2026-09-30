@@ -179,7 +179,7 @@ def write_resume(state: JobState, settings: Settings) -> dict:
 
 
 def write_cover_letter(state: JobState, settings: Settings) -> dict:
-    """Draft the letter in Human Writings voice. Facts still come from accomplishments."""
+    """Draft the letter. Craft follows the optimization paper; diction follows Human Writings. Facts come from accomplishments."""
     critique = state.get("critique") or {}
     revision_note = ""
     if critique:
@@ -420,10 +420,10 @@ def _tagged_sources(state: JobState, roles: tuple[str, ...] | None = None) -> st
 
 
 def _generation_prompt(state: JobState, kind: str) -> str:
-    """Cover letters get voice seeds; resumes get the optimization paper. Accomplishments and prior resumes are shared."""
+    """Cover letters get the optimization paper plus voice. Resumes get the paper without voice samples. Accomplishments and prior resumes are shared."""
     job = _job(state)
     if kind == "cover letter":
-        roles = (ROLE_VOICE, ROLE_FACTS, ROLE_PRIOR)
+        roles = (ROLE_ATS, ROLE_VOICE, ROLE_FACTS, ROLE_PRIOR)
     else:
         roles = (ROLE_ATS, ROLE_FACTS, ROLE_PRIOR)
     title = _posting_role(state)

@@ -79,7 +79,7 @@ def main(argv: list[str] | None = None) -> int:
     settings = get_settings()
 
     if args.command == "auth":
-        credentials(settings)
+        credentials(settings, interactive=True)
         print(f"Google token saved to {settings.google_token_path}")
         return 0
     if args.command == "doctor":
